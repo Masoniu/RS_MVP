@@ -14,3 +14,6 @@ class RoomResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class RoomJoin(BaseModel):
+    invite_code: str

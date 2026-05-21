@@ -5,8 +5,9 @@ import string
 
 from database import get_db
 import models
-from schemas.rooms import RoomCreate, RoomResponse
 from services.security import get_current_user
+from fastapi import HTTPException
+from schemas.rooms import RoomCreate, RoomResponse, RoomJoin
 
 router = APIRouter(
     prefix="/rooms",
@@ -42,3 +43,41 @@ def create_room(
     db.commit()
 
     return new_room
+
+
+@router.post("/join", status_code=status.HTTP_200_OK)
+def join_room(
+        join_data: RoomJoin,
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(get_current_user)
+):
+    room = db.query(models.Room).filter(models.Room.invite_code == join_data.invite_code).first()
+    if not room:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Кімнату з таким кодом не знайдено"
+        )
+
+    existing_member = db.query(models.RoomMember).filter(
+        models.RoomMember.room_id == room.id,
+        models.RoomMember.user_id == current_user.id
+    ).first()
+
+    if existing_member:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ви вже є учасником цієї кімнати"
+        )
+
+    new_member = models.RoomMember(
+        room_id=room.id,
+        user_id=current_user.id
+    )
+    db.add(new_member)
+    db.commit()
+
+    return {
+        "message": "Успішно приєднано до кімнати",
+        "room_id": room.id,
+        "room_name": room.name
+    }
