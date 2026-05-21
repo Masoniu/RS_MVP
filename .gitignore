@@ -11,3 +11,11 @@ __pycache__/
 .env
 
 .vscode/
+
+.pytest_cache/
+
+alembic/versions/*.pyc
+
+node_modules/
+
+dist/
