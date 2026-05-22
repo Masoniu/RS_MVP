@@ -7,7 +7,7 @@ from database import get_db
 import models
 from services.security import get_current_user
 from fastapi import HTTPException
-from schemas.rooms import RoomCreate, RoomResponse, RoomJoin
+from schemas.rooms import RoomCreate, RoomResponse, RoomJoin, RoomDetailResponse
 
 router = APIRouter(
     prefix="/rooms",
@@ -80,4 +80,43 @@ def join_room(
         "message": "Успішно приєднано до кімнати",
         "room_id": room.id,
         "room_name": room.name
+    }
+
+
+@router.get("/{room_id}", response_model=RoomDetailResponse)
+def get_room_details(
+        room_id: int,
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(get_current_user)
+):
+    room = db.query(models.Room).filter(models.Room.id == room_id).first()
+    if not room:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Кімнату не знайдено"
+        )
+
+    is_member = db.query(models.RoomMember).filter(
+        models.RoomMember.room_id == room_id,
+        models.RoomMember.user_id == current_user.id
+    ).first()
+
+    if not is_member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ви не є учасником цієї кімнати. Доступ заборонено."
+        )
+
+    room_members = db.query(models.User).join(
+        models.RoomMember, models.User.id == models.RoomMember.user_id
+    ).filter(models.RoomMember.room_id == room_id).all()
+
+    return {
+        "id": room.id,
+        "name": room.name,
+        "invite_code": room.invite_code,
+        "status": room.status,
+        "creator_id": room.creator_id,
+        "created_at": room.created_at,
+        "members": room_members
     }
