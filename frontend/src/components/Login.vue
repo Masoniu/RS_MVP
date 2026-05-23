@@ -10,16 +10,16 @@
           <p class="subtitle mx-auto">Твій персональний помічник<br>у плануванні прогулянок!</p>
         </div>
 
-        <form @submit.prevent class="auth-form mx-auto">
+        <form @submit.prevent="handleLogin" class="auth-form mx-auto">
 
           <div class="mb-3 text-start">
             <label class="form-label ms-1 custom-label">E-mail</label>
-            <input type="email" class="form-control pretty-input" placeholder="example@mail.com">
+            <input v-model="email" type="email" class="form-control pretty-input" placeholder="example@mail.com">
           </div>
 
           <div class="mb-4 text-start">
             <label class="form-label ms-1 custom-label">Пароль</label>
-            <input type="password" class="form-control pretty-input" placeholder="••••••••">
+            <input v-model="password" type="password" class="form-control pretty-input" placeholder="••••••••">
           </div>
 
           <button class="btn btn-primary w-100 rounded-pill brown-btn mb-4">Увійти</button>
@@ -45,6 +45,30 @@
 </template>
 
 <script setup>
+import { ref } from 'vue' 
+import { useRouter } from 'vue-router' 
+import { useAuthStore } from '../stores/auth'
+
+const router = useRouter() 
+const auth = useAuthStore()
+
+const email = ref('')
+const password = ref('')
+const loading = ref(false)
+const errorMsg = ref('')
+ 
+async function handleLogin() {
+  loading.value = true
+  errorMsg.value = ''
+  try {
+    await auth.login(email.value, password.value)
+    router.push({ name: 'Lobby' })
+  } catch (e) {
+    errorMsg.value = e?.response?.data?.detail || 'Помилка входу. Перевірте email і пароль.'
+  } finally {
+    loading.value = false
+  }
+}
 </script>
 
 <style scoped>
