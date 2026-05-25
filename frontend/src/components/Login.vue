@@ -1,117 +1,171 @@
 <template>
   <div class="login-page d-flex align-items-center justify-content-center">
-    <div class="container px-4 text-center">
-
-      <div class="glass-card mx-auto">
+    <div class="container-fluid p-0 h-100">
+      
+      <div class="row g-0 h-100 min-vh-100">
         
-        <div class="mb-4">
-          <img src="../assets/logo.svg" alt="RouteSplitter Logo" class="logo-image mx-auto mb-3 d-block">
-          <h1 class="fw-bold mb-2 main-title">RouteSplitter</h1>
-          <p class="subtitle mx-auto">Твій персональний помічник<br>у плануванні прогулянок!</p>
+        <div class="col-md-6 align-items-center justify-content-center route-visualization p-5">
+          <div class="animation-container text-center">
+            
+            <svg viewBox="0 0 500 400" class="map-animation mb-4" xmlns="http://www.w3.org/2000/svg">
+              <circle class="point p1" cx="80" cy="320" r="10" fill="#625050" />
+              <circle class="point p2" cx="250" cy="120" r="10" fill="#625050" />
+              <circle class="point p3" cx="420" cy="280" r="10" fill="#625050" />
+              <path class="route-line" d="M80 320 L250 120 L420 280" stroke="#625050" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+
+            <h2 class="fw-bold text-white mb-3 animation-title">Плануй. Розділяй. Кайфуй.</h2>
+            <p class="text-white-50 animation-subtitle mx-auto">Твій маршрут та витрати під контролем.</p>
+          </div>
         </div>
 
-        <form @submit.prevent="handleLogin" class="auth-form mx-auto">
+        <div class="col-md-6 d-flex align-items-center justify-content-center p-4 p-lg-5 forms-section">
+          <div class="glass-card mx-auto">
+            <div class="mb-4 text-center">
+              <img src="../assets/logo.svg" alt="RouteSplitter Logo" class="logo-image mx-auto mb-3 d-block">
+              <h1 class="fw-bold mb-2 main-title">RouteSplitter</h1>
+              <p class="subtitle mx-auto">Твій помічник у плануванні прогулянок!</p>
+            </div>
 
-          <div class="mb-3 text-start">
-            <label class="form-label ms-1 custom-label">E-mail</label>
-            <input v-model="email" type="email" class="form-control pretty-input" placeholder="example@mail.com">
+            <form @submit.prevent class="auth-form mx-auto">
+              <div class="mb-3 text-start">
+                <label class="form-label ms-1 custom-label">E-mail</label>
+                <input type="email" class="form-control pretty-input" placeholder="example@mail.com">
+              </div>
+
+              <div class="mb-4 text-start">
+                <label class="form-label ms-1 custom-label">Пароль</label>
+                <input type="password" class="form-control pretty-input" placeholder="••••••••">
+              </div>
+
+              <button class="btn w-100 brown-btn mb-4">Увійти</button>
+
+              <div class="divider mb-4">
+                <span>або</span>
+              </div>
+
+              <button class="btn w-100 google-btn mb-4 d-flex align-items-center justify-content-center">
+                <svg class="google-icon me-2" viewBox="0 0 488 512"><path d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"/></svg>
+                Продовжити з Google
+              </button>
+            </form>
+
+            <p class="bottom-text mb-0 text-center">
+              Немає акаунту?
+              <router-link to="/register" class="register-link">Зареєструватись</router-link>
+            </p>
           </div>
-
-          <div class="mb-4 text-start">
-            <label class="form-label ms-1 custom-label">Пароль</label>
-            <input v-model="password" type="password" class="form-control pretty-input" placeholder="••••••••">
-          </div>
-
-          <button class="btn btn-primary w-100 rounded-pill brown-btn mb-4">Увійти</button>
-
-          <div class="divider mb-4">
-            <span>або</span>
-          </div>
-
-          <button class="btn w-100 rounded-pill google-btn mb-4 d-flex align-items-center justify-content-center">
-            <svg class="google-icon me-2" viewBox="0 0 488 512"><path d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"/></svg>
-            Продовжити з Google
-          </button>
-
-        </form>
-
-        <p class="bottom-text mb-0">
-          Немає акаунту? <a href="#" class="register-link">Зареєструватись</a>
-        </p>
-
+        </div>
       </div>
-      </div>
+
+    </div>
   </div>
 </template>
-
-<script setup>
-import { ref } from 'vue' 
-import { useRouter } from 'vue-router' 
-import { useAuthStore } from '../stores/auth'
-
-const router = useRouter() 
-const auth = useAuthStore()
-
-const email = ref('')
-const password = ref('')
-const loading = ref(false)
-const errorMsg = ref('')
- 
-async function handleLogin() {
-  loading.value = true
-  errorMsg.value = ''
-  try {
-    await auth.login(email.value, password.value)
-    router.push({ name: 'Lobby' })
-  } catch (e) {
-    errorMsg.value = e?.response?.data?.detail || 'Помилка входу. Перевірте email і пароль.'
-  } finally {
-    loading.value = false
-  }
-}
-</script>
 
 <style scoped>
 .login-page {
   min-height: 100vh;
-  padding: 20px 0;
+  width: 100%;
+}
+
+.route-visualization {
+  display: none;
+}
+
+.map-animation {
+  width: 100%;
+  max-width: 450px;
+  height: auto;
+}
+
+.point {
+  fill: #625050;
+  opacity: 0;
+  transform-origin: center;
+  animation: appearPoint 0.5s ease forwards;
+}
+
+.p1 {
+  animation-delay: 0.5s; 
+}
+
+.p2 {
+  fill: #625050;
+  animation-delay: 1.5s; 
+}
+
+.p3 {
+  animation-delay: 2.5s; 
+}
+
+.route-line {
+  stroke-dasharray: 500;
+  stroke-dashoffset: 500;
+  animation: drawRoute 2s linear forwards;
+  animation-delay: 1.5s;
+}
+
+.animation-title {
+  font-size: 32px;
+}
+
+.animation-subtitle {
+  font-size: 16px;
+  max-width: 300px;
+}
+
+@keyframes appearPoint {
+  0% { opacity: 0; transform: scale(0); }
+  70% { transform: scale(1.2); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes drawRoute {
+  to { stroke-dashoffset: 0; }
+}
+
+.forms-section {
+  background-color: var(--bg-main);
+  background-image: 
+    radial-gradient(circle at 80% 20%, rgba(98, 80, 80, 0.4) 0%, rgba(98, 80, 80, 0) 40%),
+    radial-gradient(circle at 20% 80%, rgba(100, 109, 210, 0.5) 0%, rgba(100, 109, 210, 0) 45%);
 }
 
 .glass-card {
+  width: 100%;
   max-width: 400px;
   background: rgba(255, 255, 255, 0.4);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 24px;
-  padding: 40px 20px;
+  padding: 40px 25px;
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+  transition: transform 0.3s ease;
 }
 
 .logo-image {
-  width: auto;
-  height: 100px;
-}
+  height: 90px; 
+  }
 
 .main-title {
-  color: var(--color-primary);
-  font-size: 26px;
+  color: var(--color-primary); 
+  font-size: 26px; 
 }
 
 .subtitle {
-  font-size: 14px;
-  line-height: 1.4;
-  color: #625050;
-  max-width: 250px;
+  font-size: 14px; 
+  line-height: 1.4; 
+  color: #625050; 
+  max-width: 250px; 
 }
 
 .auth-form {
-  max-width: 320px;
+  max-width: 320px; 
 }
 
 .custom-label {
-  font-weight: 500;
-  color: #625050;
+  font-weight: 500; color: #625050; 
 }
 
 .pretty-input {
@@ -119,12 +173,10 @@ async function handleLogin() {
   border: 1px solid rgba(98, 80, 80, 0.3);
   border-radius: 12px;
   height: 48px;
-  padding: 10px 15px;
   transition: all 0.3s ease;
 }
 
 .pretty-input:focus {
-  outline: none;
   background-color: #ffffff;
   border-color: var(--color-input-focus);
   box-shadow: 0 0 0 2px rgba(41, 44, 165, 0.15);
@@ -135,21 +187,18 @@ async function handleLogin() {
   color: #ffffff;
   border: none;
   height: 48px;
-  border-radius: 12px !important;
+  border-radius: 12px;
   font-weight: 600;
   transition: all 0.3s ease;
 }
 
 .brown-btn:hover {
-  background-color: #4a3c3c;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(98, 80, 80, 0.3);
+  background-color: #4a3c3c; 
+  transform: translateY(-2px); 
 }
 
 .brown-btn:active {
-  background-color: #4a3c3c;
-  transform: translateY(1px);
-  box-shadow: 0 2px 4px rgba(98, 80, 80, 0.3);
+  transform: translateY(1px); 
 }
 
 .google-btn {
@@ -157,57 +206,74 @@ async function handleLogin() {
   color: #625050;
   border: 1px solid rgba(98, 80, 80, 0.3);
   height: 48px;
-  border-radius: 12px !important;
-  font-weight: 500;
-  font-size: 14px;
+  border-radius: 12px;
   transition: all 0.3s ease;
 }
 
-.google-btn:hover {
-  background-color: #ffffff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+.google-btn:hover { 
+  background-color: #ffffff; 
+  transform: translateY(-2px); 
 }
 
-.google-btn:active {
-  background-color: #ffffff;
-  transform: translateY(1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+.google-btn:active { 
+  transform: translateY(1px); 
 }
 
-.google-icon {
+.google-icon { 
   width: 18px;
   height: 18px;
-  fill: #625050;
+  fill: #625050; 
 }
 
 .divider {
   display: flex;
   align-items: center;
-  text-align: center;
-  color: #625050;
-  opacity: 0.6;
-}
+  color: #625050; 
+  opacity: 0.6; 
+  }
 
 .divider::before, .divider::after {
   content: "";
   flex: 1;
-  border-bottom: 1px solid #625050;
+  border-bottom: 1px solid #625050; 
 }
 
 .divider span {
-  padding: 0 15px;
-  font-size: 14px;
-}
-
-.bottom-text {
-  font-size: 14px;
-  color: #625050;
+  padding: 0 15px; 
+  font-size: 14px; 
 }
 
 .register-link {
-  color: var(--color-primary);
-  text-decoration: none;
-  font-weight: 600;
+   color: var(--color-primary); 
+   text-decoration: none; 
+   font-weight: 600; 
+}
+
+@media (min-width: 767px) {
+  .route-visualization {
+    display: flex;
+    position: relative;
+    background: linear-gradient(135deg, rgba(41, 44, 165, 0.6) 0%, rgba(26, 28, 106, 0.6) 100%), 
+                url('../assets/map.jpg');
+    background-size: cover;
+    background-position: center;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .route-visualization::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(41, 44, 165, 0.2);
+    z-index: 1;
+  }
+
+  .animation-container {
+    position: relative;
+    z-index: 2;
+  }
 }
 </style>
