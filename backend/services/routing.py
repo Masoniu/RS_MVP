@@ -14,18 +14,18 @@ async def fetch_osm_data(lat: float, lon: float, radius_km: float, db: Session):
         return cached.response
 
     radius_m = radius_km * 1000
+
     query = f"""
     [out:json];
     (
-      node["leisure"="park"](around:{radius_m},{lat},{lon});
-      node["tourism"="museum"](around:{radius_m},{lat},{lon});
-      node["amenity"~"cafe|restaurant"](around:{radius_m},{lat},{lon});
+      nwr["leisure"="park"](around:{radius_m},{lat},{lon});
+      nwr["tourism"="museum"](around:{radius_m},{lat},{lon});
+      nwr["amenity"~"cafe|restaurant"](around:{radius_m},{lat},{lon});
     );
-    out center;
+    out center tags;
     """
 
     url = "https://overpass-api.de/api/interpreter"
-
     headers = {
         "User-Agent": "RouteSplitter_MVP/1.0 (Student Project)"
     }
