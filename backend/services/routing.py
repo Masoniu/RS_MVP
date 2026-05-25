@@ -9,10 +9,10 @@ import models
 async def fetch_osm_data(lat: float, lon: float, radius_km: float, db: Session):
     cache_key = f"osm_{lat}_{lon}_{radius_km}"
     cached = db.query(models.OSMCache).filter(models.OSMCache.cache_key == cache_key).first()
+
     if cached and cached.expires_at > datetime.utcnow():
         return cached.response
 
-    # Overpass QL запит для пошуку 3 категорій
     radius_m = radius_km * 1000
     query = f"""
     [out:json];
@@ -26,20 +26,24 @@ async def fetch_osm_data(lat: float, lon: float, radius_km: float, db: Session):
 
     url = "https://overpass-api.de/api/interpreter"
 
-    # Використовуємо httpx для асинхронного запиту
-    async with httpx.AsyncClient() as client:
-        try:
-            # timeout 10 сек згідно ТЗ [cite: 147]
-            response = await client.post(url, data={"data": query}, timeout=10.0)
-            response.raise_for_status()
-            data = response.json()
-        except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Помилка з'єднання з Overpass API"
-            )
+    headers = {
+        "User-Agent": "RouteSplitter_MVP/1.0 (Student Project)"
+    }
 
-    # Зберігаємо результат у кеш
+    async with httpx.AsyncClient(headers=headers) as client:
+        for attempt in range(2):
+            try:
+                response = await client.post(url, data={"data": query}, timeout=10.0)
+                response.raise_for_status()
+                data = response.json()
+                break
+            except Exception:
+                if attempt == 1:
+                    raise HTTPException(
+                        status_code=status.HTTP_502_BAD_GATEWAY,
+                        detail="Помилка з'єднання з Overpass API після двох спроб"
+                    )
+
     new_cache = models.OSMCache(
         cache_key=cache_key,
         response=data,
@@ -53,12 +57,10 @@ async def fetch_osm_data(lat: float, lon: float, radius_km: float, db: Session):
 
     return data
 
-
 async def generate_route(budget: float, radius_km: float, lat: float, lon: float, db: Session):
     osm_data = await fetch_osm_data(lat, lon, radius_km, db)
     elements = osm_data.get("elements", [])
 
-    # Розділяємо знайдені точки за категоріями
     parks = [el for el in elements if el.get("tags", {}).get("leisure") == "park"]
     museums = [el for el in elements if el.get("tags", {}).get("tourism") == "museum"]
     cafes = [el for el in elements if "amenity" in el.get("tags", {})]
@@ -68,24 +70,18 @@ async def generate_route(budget: float, radius_km: float, lat: float, lon: float
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Недостатньо локацій різних категорій у цьому радіусі"
         )
-
-    # Завантажуємо всі статичні ціни з БД [cite: 126]
     prices_db = {p.osm_id: p.entry_price for p in db.query(models.LocationPrice).all()}
 
-    # Дефолтні ціни з Додатку Б [cite: 218]
     default_prices = {"park": 0.0, "museum": 100.0, "cafe": 250.0}
 
     def get_price(osm_node, category):
-        # Формуємо osm_id (наприклад: "node/1234567")
         osm_id = f"{osm_node.get('type', 'node')}/{osm_node['id']}"
         return prices_db.get(osm_id, default_prices[category])
 
-    # Перемішуємо, щоб маршрути генерувалися рандомно
     random.shuffle(parks)
     random.shuffle(museums)
     random.shuffle(cafes)
 
-    # Шукаємо першу-ліпшу комбінацію (Парк -> Музей -> Кафе), яка вписується в бюджет
     for park in parks:
         p_price = get_price(park, "park")
         for museum in museums:
@@ -94,7 +90,6 @@ async def generate_route(budget: float, radius_km: float, lat: float, lon: float
                 c_price = get_price(cafe, "cafe")
 
                 if (p_price + m_price + c_price) <= budget:
-                    # Повертаємо готовий масив точок для збереження у JSONB
                     return [
                         {
                             "name": park.get("tags", {}).get("name", "Парк (без назви)"),
@@ -119,7 +114,6 @@ async def generate_route(budget: float, radius_km: float, lat: float, lon: float
                         }
                     ]
 
-    # Якщо всі цикли пройшли, а сума більша за бюджет
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="Неможливо згенерувати маршрут: не вистачає бюджету для знайдених локацій"
