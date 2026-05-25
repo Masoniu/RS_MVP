@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routers import auth, rooms, maps
+from routers import auth, rooms, maps, expenses
 
 app = FastAPI(
     title="RouteSplitter API",
@@ -10,6 +10,7 @@ app = FastAPI(
 app.include_router(auth.router)
 app.include_router(rooms.router)
 app.include_router(maps.router)
+app.include_router(expenses.router)
 
 @app.get("/")
 async def root():
