@@ -60,7 +60,7 @@ def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
 def refresh_access_token(body: TokenRefreshRequest, db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Невалідний або протухлий refresh токен",
+        detail="Не валідний рефреш токен",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
