@@ -1,12 +1,16 @@
 <script setup>
 import { ref } from 'vue';
+
 const userName = ref('Хіхі хахаік'); 
 </script>
 
 <template>
-    <div class="lobby-page d-flex flex-column min-vh-100">
+    <div class="lobby-page d-flex flex-column min-vh-100 position-relative">
         
-        <header class="lobby-header d-flex justify-content-between align-items-center px-4 py-3">
+        <div class="map-pillar pillar-left d-none d-lg-block"></div>
+        <div class="map-pillar pillar-right d-none d-lg-block"></div>
+
+        <header class="lobby-header d-flex justify-content-between align-items-center px-4 py-3 position-relative z-3">
             <div class="d-flex align-items-center">
                 <img src="../assets/logo.svg" alt="Logo" class="mini-logo me-2">
                 <h2 class="fw-bold mb-0 mini-title">RouteSplitter</h2>
@@ -16,27 +20,26 @@ const userName = ref('Хіхі хахаік');
             </div>
         </header>
 
-        <div class="flex-grow-1 d-flex align-items-center justify-content-center p-4">
+        <div class="flex-grow-1 d-flex align-items-center justify-content-center p-4 position-relative z-2">
             <div class="lobby-content w-100">
                 
-                <section class="welcome-section text-center">
+                <section class="welcome-section text-center mb-4">
                     <h1 class="fw-bold greeting-text mb-2">Привіт, {{ userName }}!</h1>
-                    <p class="subtitle mb-4">Куди вирушаємо сьогодні?</p>
                 </section>
 
-                <div class="glass-card mb-4 mx-auto text-start">
+                <div class="glass-card mb-4 text-start mx-auto">
                     <div class="form-wrapper mx-auto">
-                        <h3 class="glass-card-title mb-4 text-center">Приєднатися до кімнати</h3>
+                        <h3 class="glass-card-title text-center mb-4">Куди вирушаємо сьогодні?</h3>
                         <input type="text" class="form-control pretty-input mb-4 text-center" placeholder="Введіть код кімнати">
                         <button class="btn brown-btn w-100">Приєднатися</button>
                     </div>
                 </div>
 
-                <div class="divider mb-4">
+                <div class="divider mb-4 mx-auto">
                     <span>або</span>
                 </div>
 
-                <button class="btn w-100 create-btn">
+                <button class="btn w-100 create-btn mx-auto d-block">
                     <i class="fa-solid fa-plus me-2"></i> Створити кімнату
                 </button>
                 
@@ -47,12 +50,38 @@ const userName = ref('Хіхі хахаік');
 
 <style scoped>
 .lobby-page {
-    min-height: 100vh;
     background-color: var(--bg-main);
     background-image: 
-        radial-gradient(circle at 80% 20%, rgba(100, 109, 210, 0.4) 0%, rgba(98, 80, 80, 0) 40%),
-        radial-gradient(circle at 20% 80%, rgba(100, 109, 210, 0.5) 0%, rgba(100, 109, 210, 0) 45%);
+        radial-gradient(circle at 80% 20%, rgba(100, 109, 210, 0.3) 0%, rgba(98, 80, 80, 0) 40%),
+        radial-gradient(circle at 20% 80%, rgba(100, 109, 210, 0.3) 0%, rgba(100, 109, 210, 0) 45%);
     width: 100%;
+    overflow: hidden;
+}
+
+.map-pillar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 15vw;
+    z-index: 1;
+}
+
+.pillar-left {
+    left: 0;
+    background: linear-gradient(135deg, rgba(41, 44, 165, 0.7) 0%, rgba(26, 28, 106, 0.8) 100%), url('../assets/map.jpg');
+    background-size: cover;
+    background-position: left center;
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 5px 0 25px rgba(0, 0, 0, 0.1);
+}
+
+.pillar-right {
+    right: 0;
+    background: linear-gradient(135deg, rgba(41, 44, 165, 0.7) 0%, rgba(26, 28, 106, 0.8) 100%), url('../assets/map.jpg');
+    background-size: cover;
+    background-position: right center;
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
 }
 
 .lobby-header {
@@ -81,50 +110,47 @@ const userName = ref('Хіхі хахаік');
 }
 
 .lobby-content {
+    width: 100%;
     max-width: 400px;
 }
 
 .greeting-text { 
-    font-size: 28px; 
-    color: #625050; 
+    font-size: 30px; 
+    color: #292CA8;
 }
 
 .subtitle {
-    color: #625050; 
+    color: #646dd2; 
     opacity: 0.9; 
     font-size: 16px;
 }
 
-.welcome-section {
-    margin-bottom: 50px;
-}
-
 .glass-card {
     width: 100%;
-    max-width: 400px;
-    background: rgba(255, 255, 255, 0.4);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    max-width: 400px; 
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
     border-radius: 24px;
-    padding: 40px 25px;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-    transition: transform 0.3s ease;
+    padding: 40px 25px; 
+    margin-top: 35px;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
 }
 
 .form-wrapper {
-    max-width: 320px;
+    max-width: 320px; 
 }
 
 .glass-card-title {
     font-weight: 700; 
-    color: #625050; 
-    font-size: 22px; 
+    color: #292CA8; 
+    font-size: 20px; 
     letter-spacing: -0.5px;
 }
 
 .pretty-input {
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(255, 255, 255, 0.9);
     border: 1px solid rgba(98, 80, 80, 0.3);
     border-radius: 12px;
     height: 48px;
@@ -132,8 +158,8 @@ const userName = ref('Хіхі хахаік');
 
 .pretty-input:focus {
     background-color: #ffffff;
-    border-color: #625050;
-    box-shadow: 0 0 0 2px rgba(98, 80, 80, 0.15);
+    border-color: #292CA8;
+    box-shadow: 0 0 0 2px rgba(41, 44, 165, 0.2);
 }
 
 .brown-btn {
@@ -145,29 +171,26 @@ const userName = ref('Хіхі хахаік');
     font-weight: 600;
     transition: all 0.3s ease;
 }
-
-.brown-btn:hover { 
-    background-color: #4a3c3c; 
-}
+.brown-btn:hover { background-color: #4a3c3c; }
 
 .create-btn {
     background-color: #ffffff;
-    color: #646dd2;
+    color: #625050;
     border: 1px solid rgba(98, 80, 80, 0.4);
     height: 48px;
     border-radius: 12px;
+    font-weight: 600;
     transition: all 0.3s ease;
+    max-width: 400px;
 }
-
-.create-btn:hover { 
-    background-color: rgba(255, 255, 255, 0.8); 
-}
+.create-btn:hover { background-color: rgba(255, 255, 255, 0.8); }
 
 .divider {
     display: flex;
     align-items: center;
     color: #625050; 
     opacity: 0.6; 
+    max-width: 400px;
 }
 
 .divider::before, .divider::after {
