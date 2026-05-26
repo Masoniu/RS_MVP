@@ -22,6 +22,12 @@ def create_expense(
     if not room:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Кімнату не знайдено")
 
+    if room.status == "finished":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Кімната архівована. Додавання нових витрат заборонено."
+        )
+
     new_expense = models.Expense(
         room_id=expense.room_id,
         payer_id=expense.payer_id,
