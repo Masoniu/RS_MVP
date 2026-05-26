@@ -62,7 +62,7 @@ const userName = ref('Хіхі хахаік');
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 15vw;
+    width: 35vw;
     z-index: 1;
 }
 
@@ -71,8 +71,8 @@ const userName = ref('Хіхі хахаік');
     background: linear-gradient(135deg, rgba(41, 44, 165, 0.7) 0%, rgba(26, 28, 106, 0.8) 100%), url('../assets/map.jpg');
     background-size: cover;
     background-position: left center;
-    border-right: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 5px 0 25px rgba(0, 0, 0, 0.1);
+    -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+    mask-image: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
 }
 
 .pillar-right {
@@ -80,8 +80,8 @@ const userName = ref('Хіхі хахаік');
     background: linear-gradient(135deg, rgba(41, 44, 165, 0.7) 0%, rgba(26, 28, 106, 0.8) 100%), url('../assets/map.jpg');
     background-size: cover;
     background-position: right center;
-    border-left: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
+    -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+    mask-image: linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
 }
 
 .lobby-header {
