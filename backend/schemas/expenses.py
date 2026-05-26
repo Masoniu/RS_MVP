@@ -27,3 +27,8 @@ class ExpenseResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class SettlementResponse(BaseModel):
+    from_user: int
+    to_user: int
+    amount: float
