@@ -8,6 +8,8 @@ import models
 from services.security import get_current_user
 from fastapi import HTTPException
 from schemas.rooms import RoomCreate, RoomResponse, RoomJoin, RoomDetailResponse
+from schemas.expenses import SettlementResponse
+from services.settlements import get_room_balances, calculate_settlements
 
 router = APIRouter(
     prefix="/rooms",
@@ -120,3 +122,39 @@ def get_room_details(
         "created_at": room.created_at,
         "members": room_members
     }
+
+
+@router.get("/{room_id}/balances")
+def get_balances(
+        room_id: int,
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(get_current_user)
+):
+    room_member = db.query(models.RoomMember).filter(
+        models.RoomMember.room_id == room_id,
+        models.RoomMember.user_id == current_user.id
+    ).first()
+    if not room_member:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ви не є учасником цієї кімнати")
+
+    balances = get_room_balances(room_id, db)
+    return {"room_id": room_id, "balances": balances}
+
+
+@router.get("/{room_id}/settlements", response_model=list[SettlementResponse])
+def get_final_settlements(
+        room_id: int,
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(get_current_user)
+):
+    room_member = db.query(models.RoomMember).filter(
+        models.RoomMember.room_id == room_id,
+        models.RoomMember.user_id == current_user.id
+    ).first()
+    if not room_member:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ви не є учасником цієї кімнати")
+
+    balances = get_room_balances(room_id, db)
+    settlements = calculate_settlements(balances)
+
+    return settlements
