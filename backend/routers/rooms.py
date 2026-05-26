@@ -158,3 +158,26 @@ def get_final_settlements(
     settlements = calculate_settlements(balances)
 
     return settlements
+
+
+@router.post("/{room_id}/finish")
+def finish_room(
+        room_id: int,
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(get_current_user)
+):
+    room = db.query(models.Room).filter(models.Room.id == room_id).first()
+
+    if not room:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Кімнату не знайдено")
+
+    if room.creator_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Тільки творець може завершити поїздку")
+
+    if room.status == "finished":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Кімната вже завершена")
+
+    room.status = "finished"
+    db.commit()
+
+    return {"message": "Поїздку завершено, кімнату архівовано"}
