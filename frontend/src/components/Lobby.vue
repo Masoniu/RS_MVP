@@ -152,7 +152,7 @@ const userName = ref('Хіхі хахаік');
 
 .create-btn {
     background-color: #ffffff;
-    color: #625050;
+    color: #646dd2;
     border: 1px solid rgba(98, 80, 80, 0.4);
     height: 48px;
     border-radius: 12px;
