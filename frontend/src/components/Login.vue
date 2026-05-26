@@ -1,3 +1,22 @@
+<script setup>
+
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+const router = useRouter();
+
+const email = ref('');
+const password = ref('');
+const isSubmitted = ref(false);
+
+const handleLogin = () => {
+  isSubmitted.value = true;
+  if(!email.value || !password.value) {
+    return;
+  }
+  router.push('/lobby');
+};
+</script>
+
 <template>
   <div class="login-page d-flex align-items-center justify-content-center">
     <div class="container-fluid p-0 h-100">
@@ -28,17 +47,18 @@
             </div>
 
             <form @submit.prevent class="auth-form mx-auto">
+
               <div class="mb-3 text-start">
                 <label class="form-label ms-1 custom-label">E-mail</label>
-                <input type="email" class="form-control pretty-input" placeholder="example@mail.com">
+                <input v-model="email" type="email" :class="{'error-glow': isSubmitted && !email}" class="form-control pretty-input" placeholder="example@mail.com">
               </div>
 
               <div class="mb-4 text-start">
                 <label class="form-label ms-1 custom-label">Пароль</label>
-                <input type="password" class="form-control pretty-input" placeholder="••••••••">
+                <input v-model="password" type="password" :class="{'error-glow': isSubmitted && !password}" class="form-control pretty-input" placeholder="••••••••">
               </div>
 
-              <button class="btn w-100 brown-btn mb-4">Увійти</button>
+              <button @click="handleLogin" class="btn w-100 brown-btn mb-4">Увійти</button>
 
               <div class="divider mb-4">
                 <span>або</span>
@@ -63,6 +83,12 @@
 </template>
 
 <style scoped>
+.error-glow {
+  border-color: #625050 !important;
+  background-color: rgba(255, 152, 0, 0.05) !important;
+  box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.2) !important;
+}
+
 .login-page {
   min-height: 100vh;
   width: 100%;
