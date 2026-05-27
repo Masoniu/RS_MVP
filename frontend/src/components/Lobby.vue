@@ -1,6 +1,8 @@
 <script setup>
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
 const userName = ref('Хіхі хахаік'); 
 </script>
 
@@ -31,7 +33,7 @@ const userName = ref('Хіхі хахаік');
                     <div class="form-wrapper mx-auto">
                         <h3 class="glass-card-title text-center mb-4">Куди вирушаємо сьогодні?</h3>
                         <input type="text" class="form-control pretty-input mb-4 text-center" placeholder="Введіть код кімнати">
-                        <button class="btn brown-btn w-100">Приєднатися</button>
+                        <button @click="router.push('/room')" class="btn brown-btn w-100">Приєднатися</button>
                     </div>
                 </div>
 
@@ -39,7 +41,7 @@ const userName = ref('Хіхі хахаік');
                     <span>або</span>
                 </div>
 
-                <button class="btn w-100 create-btn mx-auto d-block">
+                <button @click="router.push('/room')" class="btn w-100 create-btn mx-auto d-block">
                     <i class="fa-solid fa-plus me-2"></i> Створити кімнату
                 </button>
                 
