@@ -1,8 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from './components/Login.vue'
 import Register from './components/Register.vue'
-import Lobby from './components/Lobby.vue'
-import Room from './components/Room.vue'
+import { useAuthStore } from './stores/auth'
 
 const routes = [
   {
@@ -21,7 +20,7 @@ const routes = [
     component: () => import('./components/Lobby.vue')
   },
   {
-    path: '/room',
+    path: '/room/:id',
     name: 'Room',
     component: () => import('./components/Room.vue')
   }
@@ -30,6 +29,20 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore()
+
+  if (to.name !== 'Login' && to.name !== 'Register' && !authStore.isLoggedIn) {
+    next({ name: 'Login' })
+  }
+  else if ((to.name === 'Login' || to.name === 'Register') && authStore.isLoggedIn) {
+    next({ name: 'Lobby' })
+  }
+  else {
+    next()
+  }
 })
 
 export default router

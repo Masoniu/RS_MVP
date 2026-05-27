@@ -2,18 +2,29 @@
 
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '../stores/auth';
 const router = useRouter();
 
 const email = ref('');
 const password = ref('');
 const isSubmitted = ref(false);
+const errorMessage = ref('');
 
-const handleLogin = () => {
+const handleLogin = async () => { // <-- ДОДАЛИ async
   isSubmitted.value = true;
-  if(!email.value || !password.value) {
+  errorMessage.value = '';
+
+  if (!email.value || !password.value) {
     return;
   }
-  router.push('/lobby');
+
+  try {
+    await authStore.login(email.value, password.value);
+    router.push('/lobby');
+  } catch (error) {
+    console.error(error);
+    errorMessage.value = error.response?.data?.detail || 'Невірний email або пароль';
+  }
 };
 </script>
 
@@ -52,10 +63,13 @@ const handleLogin = () => {
                 <label class="form-label ms-1 custom-label">E-mail</label>
                 <input v-model="email" type="email" :class="{'error-glow': isSubmitted && !email}" class="form-control pretty-input" placeholder="example@mail.com">
               </div>
-
               <div class="mb-4 text-start">
                 <label class="form-label ms-1 custom-label">Пароль</label>
                 <input v-model="password" type="password" :class="{'error-glow': isSubmitted && !password}" class="form-control pretty-input" placeholder="••••••••">
+              </div>
+
+              <div v-if="errorMessage" class="alert alert-danger py-2 text-center" style="border-radius: 12px; font-size: 14px;">
+                {{ errorMessage }}
               </div>
 
               <button @click="handleLogin" class="btn w-100 brown-btn mb-4">Увійти</button>

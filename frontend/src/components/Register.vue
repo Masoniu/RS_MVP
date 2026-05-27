@@ -1,24 +1,39 @@
 <script setup>
-
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '../stores/auth';
+
 const router = useRouter();
+const authStore = useAuthStore();
 
 const name = ref('');
 const email = ref('');
 const password = ref('');
 const confirmPassword = ref('');
 const isSubmitted = ref(false);
+const errorMessage = ref('');
 
-const handleRegister = () => {
+const handleRegister = async () => {
   isSubmitted.value = true;
-  if(!name.value || !email.value || !password.value || !confirmPassword.value) {
+  errorMessage.value = '';
+
+  if (!name.value || !email.value || !password.value || !confirmPassword.value) {
     return;
   }
-  if(password.value !== confirmPassword.value) {
+  if (password.value !== confirmPassword.value) {
+    errorMessage.value = 'Паролі не збігаються';
     return;
   }
-  router.push('/lobby');
+
+  try {
+    await authStore.register(email.value, password.value, name.value);
+    await authStore.login(email.value, password.value);
+
+    router.push('/lobby');
+  } catch (error) {
+    console.error(error);
+    errorMessage.value = error.response?.data?.detail || 'Помилка під час реєстрації';
+  }
 };
 </script>
 
@@ -75,6 +90,10 @@ const handleRegister = () => {
               <div class="mb-3 text-start">
                 <label class="form-label ms-1 custom-label">Підтвердження пароля</label>
                 <input v-model="confirmPassword" type="password" :class="{'error-glow': isSubmitted && !confirmPassword}" class="form-control pretty-input" placeholder="••••••••">
+              </div>
+
+              <div v-if="errorMessage" class="alert alert-danger py-2 text-center mb-3" style="border-radius: 12px; font-size: 14px; background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7;">
+                {{ errorMessage }}
               </div>
 
               <button @click="handleRegister" class="btn w-100 brown-btn mb-4 mt-2">Реєстрація
