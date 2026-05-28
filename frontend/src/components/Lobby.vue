@@ -3,7 +3,12 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
+
+// TODO - replace with actual user data from store
 const userName = ref('Хіхі хахаік'); 
+
+// TODO - replace with actual room status from store (check if user has active room or not)
+const hasActiveRoom = ref(true);
 </script>
 
 <template>
@@ -24,6 +29,20 @@ const userName = ref('Хіхі хахаік');
 
         <div class="flex-grow-1 d-flex align-items-center justify-content-center p-4 position-relative z-2">
             <div class="lobby-content w-100">
+                <div v-if="hasActiveRoom" class="glass-box active-trip-banner p-3 mb-4 d-flex justify-content-between align-items-center z-2">
+                    <div class="d-flex align-items-center">
+                        <div class="banner-icon me-3">
+                            <i class="fa-solid fa-route text-white"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-0 text-dark-brown">У тебе є активна прогулянка!</h6>
+                            <p class="text-muted small mb-0">Прогулянка Подолом</p>
+                        </div>
+                    </div>
+                    <button @click="router.push('/room')" class="btn brown-btn btn-sm px-3">
+                        Повернутися
+                    </button>
+                </div>
                 
                 <section class="welcome-section text-center mb-4">
                     <h1 class="fw-bold greeting-text mb-2">Привіт, {{ userName }}!</h1>
@@ -204,5 +223,25 @@ const userName = ref('Хіхі хахаік');
 .divider span {
     padding: 0 15px; 
     font-size: 14px; 
+}
+
+.text-dark-brown {
+    color: #3b1c1c;
+}
+
+.active-trip-banner {
+    border-left: 5px solid #292CA8;
+    width: 100%;
+}
+
+.banner-icon {
+    width: 40px;
+    height: 40px;
+    background-color: #292CA8;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(41, 44, 165, 0.2);
 }
 </style>
