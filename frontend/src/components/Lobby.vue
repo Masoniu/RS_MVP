@@ -61,7 +61,7 @@ const userName = ref('Хіхі хахаік');
 }
 
 .map-pillar {
-    position: absolute;
+    position: fixed;
     top: 0;
     bottom: 0;
     width: 35vw;
