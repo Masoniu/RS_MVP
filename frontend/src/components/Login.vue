@@ -68,8 +68,10 @@ const handleLogin = async () => { // <-- ДОДАЛИ async
                 <input v-model="password" type="password" :class="{'error-glow': isSubmitted && !password}" class="form-control pretty-input" placeholder="••••••••">
               </div>
 
-              <div v-if="errorMessage" class="alert alert-danger py-2 text-center" style="border-radius: 12px; font-size: 14px;">
-                {{ errorMessage }}
+              <div style="min-height: 45px; margin-bottom: 15px;">
+                <div v-if="errorMessage" class="alert alert-danger py-2 text-center m-0" style="border-radius: 12px; font-size: 14px;">
+                    {{ errorMessage }}
+                </div>
               </div>
 
               <button @click="handleLogin" class="btn w-100 brown-btn mb-4">Увійти</button>
