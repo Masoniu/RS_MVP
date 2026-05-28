@@ -4,11 +4,19 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
-const isHost = ref(false); 
+// TODO - check if user is the host of the room
+const isHost = ref(true);
+
+//TODO - have host pressed "Завершити прогулянку" button or no?
 const isFinished = ref(false);
+
+//TODO - replace with actual room code from store
 const roomCode = ref('S T 5 4 8 7');
+
+//current tab in room page (map, participants, expenses) - for me to check
 const activeTab = ref('expenses');
 
+//DO NOT TOUCH HEADER AND SCROLL, THESE ARE MINE >:)
 const showHeader = ref(true);
 let lastScrollPosition = 0;
 
@@ -36,11 +44,14 @@ onUnmounted(() => {
     window.removeEventListener('scroll', handleScroll);
 });
 
+//TODO - implement leave room functionality
 const leaveRoom = () => {
     router.push('/lobby');
 };
 
+//TODO - implement copy code functionality
 const copyCode = () => {
+    navigator.clipboard.writeText(roomCode.value);
     console.log('Код скопійовано!');
 };
 </script>
@@ -168,43 +179,68 @@ const copyCode = () => {
                                 <span class="fw-bold text-success">+30 грн</span>
                             </div>
                         </div>
-
-                        <button v-if="isHost" @click="isFinished = true" class="btn brown-btn w-100 mt-2 mb-4">
-                            Завершити прогулянку
-                        </button>
-
                     </div>
-
-                <div v-else>
+                    <div v-else>
+                        <div class="mb-4">
+                            <p class="section-title mb-3">Фінальні розрахунки</p>
                     
-                    <div class="mb-4">
-                        <p class="section-title mb-3">Фінальні розрахунки</p>
-                        
-                        <div class="glass-box participant-card d-flex align-items-center mb-3 px-3 py-3">
-                            <div class="avatar-circle me-3"><i class="fa-solid fa-money-bill-transfer text-white"></i></div>
-                            <span class="participant-name flex-grow-1 fw-bold">Анна <i class="fa-solid fa-arrow-right mx-1 text-muted"></i> Віка</span>
-                            <span class="fw-bold text-danger">80 грн</span>
+                            <div class="glass-box participant-card d-flex align-items-center mb-3 px-3 py-3">
+                                <div class="avatar-circle me-3"><i class="fa-solid fa-money-bill-transfer text-white"></i></div>
+                                <span class="participant-name flex-grow-1 fw-bold">Анна <i class="fa-solid fa-arrow-right mx-1 text-muted"></i> Віка</span>
+                                <span class="fw-bold text-danger">80 грн</span>
+                            </div>
+
+                            <div class="glass-box participant-card d-flex align-items-center mb-3 px-3 py-3">
+                                <div class="avatar-circle me-3"><i class="fa-solid fa-money-bill-transfer text-white"></i></div>
+                                <span class="participant-name flex-grow-1 fw-bold">Максим <i class="fa-solid fa-arrow-right mx-1 text-muted"></i> Анна</span>
+                                <span class="fw-bold text-danger">1000 грн</span>
+                            </div>
                         </div>
 
-                        <div class="glass-box participant-card d-flex align-items-center mb-3 px-3 py-3">
-                            <div class="avatar-circle me-3"><i class="fa-solid fa-money-bill-transfer text-white"></i></div>
-                            <span class="participant-name flex-grow-1 fw-bold">Максим <i class="fa-solid fa-arrow-right mx-1 text-muted"></i> Анна</span>
-                            <span class="fw-bold text-danger">1000 грн</span>
-                        </div>
                     </div>
-
-                    <button @click="leaveRoom" class="btn create-btn w-100 mt-2 mb-4">
-                        Повернутися в Лобі
-                    </button>
-
                 </div>
-
-            </div>
 
                 <div v-if="activeTab === 'map'" class="map-section">
-                    <p class="section-title mb-3">Мапа</p>
+                    <p class="section-title mb-3">Налаштування маршруту</p>
+                    
+                    <div v-if="isHost" class="glass-box p-4 mb-4">
+                        <p class="fw-bold mb-3" style="color: #3b1c1c;">Параметри прогулянки</p>
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-muted small mb-1">Бюджет (на людину)</label>
+                            <select class="form-select custom-select">
+                                <option value="low">До 500 грн</option>
+                                <option value="medium">500 - 1000 грн</option>
+                                <option value="high">Необмежено</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label text-muted small mb-1">Радіус пошуку</label>
+                            <select class="form-select custom-select">
+                                <option value="walk">Пішки (до 2 км)</option>
+                                <option value="medium">Середній (до 5 км)</option>
+                                <option value="far">На таксі (весь Київ)</option>
+                            </select>
+                        </div>
+
+                        <button class="btn brown-btn w-100">
+                            Знайти локації
+                        </button>
+                    </div>
+
+                    <div v-else class="glass-box p-4 text-center mb-4">
+                        <div class="mb-3">
+                            <i class="fa-solid fa-compass fa-spin fs-1" style="color: #292CA8;"></i>
+                        </div>
+                        <h5 class="fw-bold" style="color: #3b1c1c;">Очікуємо на хоста</h5>
+                        <p class="text-muted mb-0" style="font-size: 14px;">Хост зараз налаштовує параметри та радіус нашої прогулянки. Зачекайте трохи...</p>
+                    </div>
                 </div>
 
+                <button v-if="isHost && !isFinished" @click="isFinished = true" class="btn brown-btn w-100 mt-4 mb-4">
+                    Завершити прогулянку
+                </button>
             </div>
 
         </main>
@@ -534,5 +570,36 @@ const copyCode = () => {
 
 .text-success {
     color: #188038 !important;
+}
+
+.custom-select {
+    background-color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(98, 80, 80, 0.2);
+    border-radius: 12px;
+    padding: 12px 15px;
+    color: #3b1c1c;
+    font-weight: 500;
+    box-shadow: none;
+    transition: border-color 0.2s ease;
+}
+
+.custom-select:focus {
+    border-color: #292CA8;
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(41, 44, 165, 0.1);
+}
+
+.brown-btn {
+    background-color: #625050;
+    color: white;
+    border-radius: 14px;
+    padding: 12px;
+    font-weight: 600;
+    border: none;
+    transition: background-color 0.2s ease;
+}
+
+.brown-btn:hover {
+    background-color: #4a3c3c;
 }
 </style>
