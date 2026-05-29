@@ -3,14 +3,16 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+
 const router = useRouter();
+const authStore = useAuthStore();
 
 const email = ref('');
 const password = ref('');
 const isSubmitted = ref(false);
 const errorMessage = ref('');
 
-const handleLogin = async () => { // <-- ДОДАЛИ async
+const handleLogin = async () => {
   isSubmitted.value = true;
   errorMessage.value = '';
 
@@ -57,7 +59,7 @@ const handleLogin = async () => { // <-- ДОДАЛИ async
               <p class="subtitle mx-auto">Твій помічник у плануванні прогулянок!</p>
             </div>
 
-            <form @submit.prevent class="auth-form mx-auto">
+            <form @submit.prevent="handleLogin" class="auth-form mx-auto">
 
               <div class="mb-3 text-start">
                 <label class="form-label ms-1 custom-label">E-mail</label>
@@ -73,9 +75,9 @@ const handleLogin = async () => { // <-- ДОДАЛИ async
                     {{ errorMessage }}
                 </div>
               </div>
-
-              <button @click="handleLogin" class="btn w-100 brown-btn mb-4">Увійти</button>
-
+                
+              <button type="submit" class="btn w-100 brown-btn mb-4">Увійти</button>
+              
               <div class="divider mb-4">
                 <span>або</span>
               </div>
