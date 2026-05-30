@@ -11,13 +11,26 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function register(email, password, name) {
     const { data } = await authApi.register({ email, password, name })
+
+    await login(email, password)
+    user.value = { ...user.value, name: data.name }
+    localStorage.setItem('user', JSON.stringify(user.value))
     return data
   }
 
   async function login(email, password) {
     const { data } = await authApi.login({ email, password })
     _setTokens(data.access_token, data.refresh_token)
-    localStorage.setItem('user', JSON.stringify(user.value))
+
+    const payload = _decodeJwt(data.access_token)
+    const existing = JSON.parse(localStorage.getItem('user') || 'null')
+    const userData = {
+      id: payload ? parseInt(payload.sub) : null,
+      email,
+      name: existing?.name || null,
+    }
+    user.value = userData
+    localStorage.setItem('user', JSON.stringify(userData))
     return data
   }
 
@@ -35,6 +48,14 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken.value = refresh
     localStorage.setItem('access_token', access)
     localStorage.setItem('refresh_token', refresh)
+  }
+
+  function _decodeJwt(token) {
+    try {
+      return JSON.parse(atob(token.split('.')[1]))
+    } catch {
+      return null
+    }
   }
 
   return { accessToken, refreshToken, user, isLoggedIn, register, login, logout }

@@ -1,14 +1,57 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '../stores/auth';
+import { roomsApi } from '../api/rooms';
 
 const router = useRouter();
 
-// TODO - replace with actual user data from store
-const userName = ref('Хіхі хахаік'); 
+const authStore = useAuthStore();
+const userName = ref(authStore.user?.name || authStore.user?.email || 'Юначе');
 
-// TODO - replace with actual room status from store (check if user has active room or not)
-const hasActiveRoom = ref(true);
+const inviteCode = ref('');
+const joinError = ref('');
+const joinLoading = ref(false);
+
+//Потрібно переписати, щоб коректно повертало список кімнат
+const hasActiveRoom = ref(null);
+
+onMounted(async () => {
+  const savedRoomId = localStorage.getItem('active_room_id');
+  if (savedRoomId) {
+    try {
+      const { data } = await roomsApi.getRoom(savedRoomId);
+      if (data.status === 'active') {
+        hasActiveRoom.value = data;
+      } else {
+        localStorage.removeItem('active_room_id');
+      }
+    } catch {
+      localStorage.removeItem('active_room_id');
+    }
+  }
+});
+
+async function joinRoom() {
+  if (!inviteCode.value.trim()) return;
+  joinLoading.value = true;
+  joinError.value = '';
+  try {
+    const { data } = await roomsApi.joinRoom(inviteCode.value.trim().toUpperCase());
+    localStorage.setItem('active_room_id', data.room_id);
+    router.push(`/room/${data.room_id}`);
+  } catch (err) {
+    joinError.value = err.response?.data?.detail || 'Помилка при приєднанні';
+  } finally {
+    joinLoading.value = false;
+  }
+}
+
+function logout() {
+  authStore.logout();
+  localStorage.removeItem('active_room_id');
+  router.push('/');
+}
 </script>
 
 <template>
@@ -22,13 +65,17 @@ const hasActiveRoom = ref(true);
                 <img src="../assets/logo.svg" alt="Logo" class="mini-logo me-2">
                 <h2 class="fw-bold mb-0 mini-title">RouteSplitter</h2>
             </div>
-            <div class="avatar-circle">
-                <i class="fa-solid fa-user text-white"></i>
+            <div class="d-flex align-items-center gap-3">
+                <button @click="logout" class="btn btn-sm logout-btn">Вийти</button>
+                <div class="avatar-circle">
+                    <i class="fa-solid fa-user text-white"></i>
+                </div>
             </div>
         </header>
 
         <div class="flex-grow-1 d-flex align-items-center justify-content-center p-4 position-relative z-2">
             <div class="lobby-content w-100">
+
                 <div v-if="hasActiveRoom" class="glass-box active-trip-banner p-3 mb-4 d-flex justify-content-between align-items-center z-2">
                     <div class="d-flex align-items-center">
                         <div class="banner-icon me-3">
@@ -36,10 +83,10 @@ const hasActiveRoom = ref(true);
                         </div>
                         <div>
                             <h6 class="fw-bold mb-0 text-dark-brown">У тебе є активна прогулянка!</h6>
-                            <p class="text-muted small mb-0">Прогулянка Подолом</p>
+                            <p class="text-muted small mb-0">{{ activeRoom.name }}</p>
                         </div>
                     </div>
-                    <button @click="router.push('/room')" class="btn brown-btn btn-sm px-3">
+                    <button @click="router.push(`/room/${activeRoom.id}`)" class="btn brown-btn btn-sm px-3">
                         Повернутися
                     </button>
                 </div>
@@ -51,8 +98,25 @@ const hasActiveRoom = ref(true);
                 <div class="glass-card mb-4 text-start mx-auto">
                     <div class="form-wrapper mx-auto">
                         <h3 class="glass-card-title text-center mb-4">Куди вирушаємо сьогодні?</h3>
-                        <input type="text" class="form-control pretty-input mb-4 text-center" placeholder="Введіть код кімнати">
-                        <button @click="router.push('/room')" class="btn brown-btn w-100">Приєднатися</button>
+                        <input
+                            v-model="inviteCode"
+                            type="text"
+                            class="form-control pretty-input mb-2 text-center"
+                            placeholder="Введіть код кімнати"
+                            @keyup.enter="joinRoom"
+                        >
+                        <p v-if="joinError" class="text-danger small text-center mb-2" style="min-height: 20px;">
+                            {{ joinError }}
+                        </p>
+                        <div v-else style="min-height: 20px;" class="mb-0"></div>
+                        <button
+                            @click="joinRoom"
+                            class="btn brown-btn w-100 mt-2"
+                            :disabled="joinLoading || !inviteCode.trim()"
+                        >
+                            <span v-if="joinLoading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            Приєднатися
+                        </button>                    
                     </div>
                 </div>
 
@@ -60,7 +124,7 @@ const hasActiveRoom = ref(true);
                     <span>або</span>
                 </div>
 
-                <button @click="router.push('/room')" class="btn w-100 create-btn mx-auto d-block">
+                <button @click="router.push('/create-room')" class="btn w-100 create-btn mx-auto d-block">
                     <i class="fa-solid fa-plus me-2"></i> Створити кімнату
                 </button>
                 
@@ -119,6 +183,14 @@ const hasActiveRoom = ref(true);
     font-size: 20px; 
     color: #ffffff; 
 }
+
+.logout-btn {
+    color: rgba(255,255,255,0.8);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 10px;
+    font-size: 13px;
+}
+.logout-btn:hover { color: #fff; border-color: #fff; }
 
 .avatar-circle {
     width: 40px;
