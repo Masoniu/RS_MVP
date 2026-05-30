@@ -98,20 +98,26 @@ function logout() {
                 <div class="glass-card mb-4 text-start mx-auto">
                     <div class="form-wrapper mx-auto">
                         <h3 class="glass-card-title text-center mb-4">Куди вирушаємо сьогодні?</h3>
-                        <input
-                            v-model="inviteCode"
-                            type="text"
-                            class="form-control pretty-input mb-2 text-center"
-                            placeholder="Введіть код кімнати"
-                            @keyup.enter="joinRoom"
-                        >
-                        <p v-if="joinError" class="text-danger small text-center mb-2" style="min-height: 20px;">
-                            {{ joinError }}
-                        </p>
-                        <div v-else style="min-height: 20px;" class="mb-0"></div>
+                        <div class="mb-3">
+                            <input
+                                v-model="inviteCode"
+                                type="text"
+                                class="form-control pretty-input text-center"
+                                :class="{ 'error-glow': joinError }"
+                                placeholder="Введіть код кімнати"
+                                @keyup.enter="joinRoom"
+                            >
+                        </div>
+                        
+                        <div v-if="joinError" class="mb-3">
+                            <div class="alert alert-danger py-2 text-center m-0" style="border-radius: 12px; font-size: 14px;">
+                                {{ joinError }}
+                            </div>
+                        </div>
+
                         <button
                             @click="joinRoom"
-                            class="btn brown-btn w-100 mt-2"
+                            class="btn brown-btn w-100"
                             :disabled="joinLoading || !inviteCode.trim()"
                         >
                             <span v-if="joinLoading" class="spinner-border spinner-border-sm me-2" role="status"></span>
