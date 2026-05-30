@@ -94,13 +94,13 @@ const endDrag = () => {
 </script>
 
 <template>
-    <div class="cards-container d-flex flex-column align-items-center justify-content-center min-vh-100 p-4">
+    <div class="cards-container d-flex flex-column align-items-center w-100 py-2">
         
-        <div v-if="!isFinished && places.length > 0" class="likes-counter mb-4 fw-bold px-4 py-2 glass-box text-dark-brown text-center w-100" style="max-width: 400px;">
+        <div v-if="!isFinished && places.length > 0" class="likes-counter mb-2 fw-bold px-4 py-2 glass-box text-dark-brown text-center w-100" style="max-width: 400px;">
             Обрано: {{ likedCount }} / 3
         </div>
 
-        <div v-if="places.length > 0 && !isFinished" class="cards-stack position-relative mb-4 w-100" style="max-width: 400px; height: 540px;">
+        <div v-if="places.length > 0 && !isFinished" class="cards-stack position-relative mb-3 w-100" style="max-width: 400px; height: 540px;">
             
            <div v-for="(place, index) in places.slice(0, 2)" :key="place.id" 
                  class="place-card glass-box p-3 w-100 position-absolute"
@@ -155,7 +155,7 @@ const endDrag = () => {
             <p class="text-muted mb-0">Очікуємо на результати збігів від інших учасників...</p>
         </div>
 
-        <div class="controls d-flex gap-4 mt-2" v-if="places.length > 0 && !isFinished">
+        <div class="controls d-flex gap-4" style="margin-top: -15px; z-index: 10;" v-if="places.length > 0 && !isFinished">
             <button @click="handleChoice(false)" class="btn action-btn skip-btn">
                 <i class="fa-solid fa-xmark"></i>
             </button>
