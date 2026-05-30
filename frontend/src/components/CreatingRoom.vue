@@ -59,8 +59,11 @@ async function handleCreate() {
         <div class="glass-card text-start mx-auto">
           <div class="form-wrapper mx-auto">
 
-            <div class="mb-3 text-start">
-              <label class="form-label ms-1 custom-label">Назва прогулянки</label>
+            <div class="mb-4 text-start">
+              <div class="d-flex justify-content-between align-items-center mb-1 px-1">
+                <label class="form-label ms-1 custom-label">Назва прогулянки</label>
+                <span class="char-counter">{{ roomName.length }}/60</span>
+              </div>
               <input
                 v-model="roomName"
                 type="text"
@@ -73,9 +76,7 @@ async function handleCreate() {
               >
             </div>
 
-            <p class="char-counter text-end mb-3">{{ roomName.length }}/60</p>
-
-            <div style="min-height: 36px;" class="mb-2">
+            <div v-if="errorMessage || (isSubmitted && !roomName.trim())" class="mb-4">
               <div
                 v-if="errorMessage"
                 class="alert alert-danger py-2 text-center m-0"
@@ -224,7 +225,11 @@ async function handleCreate() {
   letter-spacing: -0.5px;
 }
 
-.custom-label { font-weight: 500; color: #625050; }
+.custom-label { 
+  font-weight: 500; 
+  color: #625050; 
+  font-size: 14px;
+}
 
 .pretty-input {
   background-color: rgba(255, 255, 255, 0.9);
@@ -248,11 +253,13 @@ async function handleCreate() {
 .char-counter {
   font-size: 12px;
   color: #625050;
-  opacity: 0.5;
-  margin-top: -8px;
+  opacity: 0.6;
+  font-weight: 500;
 }
 
-.examples-row { gap: 8px; }
+.examples-row { 
+  gap: 8px; 
+}
 
 .example-chip {
   background: rgba(41, 44, 165, 0.08);
@@ -293,7 +300,9 @@ async function handleCreate() {
   font-weight: 600;
   transition: all 0.3s ease;
 }
-.create-btn:hover { background-color: rgba(255, 255, 255, 0.8); }
+.create-btn:hover { 
+  background-color: rgba(255, 255, 255, 0.8); 
+}
 
 .hint-text {
   font-size: 13px;
