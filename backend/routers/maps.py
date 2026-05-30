@@ -2,50 +2,49 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database import get_db
 import models
-from schemas.maps import RouteGenerateRequest, RouteResponse
+from schemas.maps import RouteCandidatesResponse, SaveRouteRequest, RouteResponse
 from services.security import get_current_user
-from services.routing import generate_route
+from services.routing import get_route_candidates
 
-router = APIRouter(
-    prefix="/rooms",
-    tags=["Maps"]
-)
+router = APIRouter(prefix="/rooms", tags=["Maps & Routes"])
 
 
-@router.post("/{room_id}/route", response_model=RouteResponse)
-async def create_room_route(
+@router.post("/{room_id}/route-candidates", response_model=RouteCandidatesResponse)
+async def fetch_candidates(
         room_id: int,
-        request: RouteGenerateRequest,
+        lat: float,
+        lon: float,
+        radius_km: float,
         db: Session = Depends(get_db),
         current_user: models.User = Depends(get_current_user)
 ):
-    room_member = db.query(models.RoomMember).filter(
-        models.RoomMember.room_id == room_id,
-        models.RoomMember.user_id == current_user.id
-    ).first()
+    room = db.query(models.Room).filter(models.Room.id == room_id).first()
+    if not room:
+        raise HTTPException(status_code=404, detail="Кімнату не знайдено")
 
-    if not room_member:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Ви не є учасником цієї кімнати"
-        )
+    if room.status == "finished":
+        raise HTTPException(status_code=400, detail="Кімната архівована")
 
-    locations_array = await generate_route(
-        budget=request.budget,
-        radius_km=request.radius_km,
-        lat=request.latitude,
-        lon=request.longitude,
-        db=db
-    )
+    candidates = await get_route_candidates(radius_km, lat, lon, db)
+    return candidates
+
+
+@router.post("/{room_id}/save-route", response_model=RouteResponse)
+def save_final_route(
+        room_id: int,
+        payload: SaveRouteRequest,
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(get_current_user)
+):
     db.query(models.Route).filter(models.Route.room_id == room_id).delete()
+
     new_route = models.Route(
         room_id=room_id,
-        budget=request.budget,
-        radius_km=request.radius_km,
-        locations=locations_array
+        budget=payload.budget,
+        radius_km=payload.radius_km,
+        locations=[loc.model_dump() for loc in payload.locations]
     )
     db.add(new_route)
     db.commit()
     db.refresh(new_route)
-
     return new_route
