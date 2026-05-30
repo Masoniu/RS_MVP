@@ -92,7 +92,7 @@ const handleRegister = async () => {
                 <input v-model="confirmPassword" type="password" :class="{'error-glow': isSubmitted && !confirmPassword}" class="form-control pretty-input" placeholder="••••••••">
               </div>
 
-              <div style="min-height: 45px; margin-bottom: 15px;">
+              <div style="margin-bottom: 15px;">
                 <div v-if="errorMessage" class="alert alert-danger py-2 text-center m-0" style="border-radius: 12px; font-size: 14px;">
                     {{ errorMessage }}
                 </div>
