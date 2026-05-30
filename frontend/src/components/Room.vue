@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
+import LocationCards from '../components/LocationCards.vue';
 
 const router = useRouter();
 
@@ -14,7 +15,7 @@ const isFinished = ref(false);
 const roomCode = ref('S T 5 4 8 7');
 
 //current tab in room page (map, participants, expenses) - for me to check
-const activeTab = ref('expenses');
+const activeTab = ref('map');
 
 //DO NOT TOUCH HEADER AND SCROLL, THESE ARE MINE >:)
 const showHeader = ref(true);
@@ -54,6 +55,12 @@ const copyCode = () => {
     navigator.clipboard.writeText(roomCode.value);
     console.log('Код скопійовано!');
 };
+
+const isSwiping = ref(false);
+
+const startSwipe = (event) => {
+    isSwiping.value = true;
+};
 </script>
 
 <template>
@@ -86,161 +93,172 @@ const copyCode = () => {
 
             <div class="content-wrapper mx-auto">
                 
-                <div class="mb-4">
-                    <p class="section-title mb-3">Код запрошення</p>
-                    <div class="glass-box d-flex justify-content-between align-items-center px-4 py-3">
-                        <span class="room-code fw-bold">{{ roomCode }}</span>
-                        <button class="btn copy-btn" @click="copyCode">
-                            <i class="fa-solid fa-copy"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="section-divider my-4"></div>
-
-                <div v-if="activeTab === 'participants'" class="participants-section">
-                    <p class="section-title mb-3">Учасники (3)</p>
+                <div v-if="activeTab !== 'map'" class="w-100 mx-auto" style="max-width: 600px;">
                     
-                    <div class="glass-box participant-card d-flex align-items-center mb-3 px-3 py-2">
-                        <div class="avatar-circle me-3"><i class="fa-solid fa-user text-white"></i></div>
-                        <span class="participant-name flex-grow-1 fw-bold">Анна</span>
-                        <span class="badge host-badge">хост</span>
+                    <div class="mb-4">
+                        <p class="section-title mb-3">Код запрошення</p>
+                        <div class="glass-box d-flex justify-content-between align-items-center px-4 py-3">
+                            <span class="room-code fw-bold">{{ roomCode }}</span>
+                            <button class="btn copy-btn" @click="copyCode">
+                                <i class="fa-solid fa-copy"></i>
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="glass-box participant-card d-flex align-items-center mb-3 px-3 py-2">
-                        <div class="avatar-circle me-3"><i class="fa-solid fa-user text-white"></i></div>
-                        <span class="participant-name flex-grow-1 fw-bold">Максим</span>
+                    <div class="section-divider my-4"></div>
+
+                    <div v-if="activeTab === 'participants'" class="participants-section">
+                        <p class="section-title mb-3">Учасники (3)</p>
+                        
+                        <div class="glass-box participant-card d-flex align-items-center mb-3 px-3 py-2">
+                            <div class="avatar-circle me-3"><i class="fa-solid fa-user text-white"></i></div>
+                            <span class="participant-name flex-grow-1 fw-bold">Анна</span>
+                            <span class="badge host-badge">хост</span>
+                        </div>
+
+                        <div class="glass-box participant-card d-flex align-items-center mb-3 px-3 py-2">
+                            <div class="avatar-circle me-3"><i class="fa-solid fa-user text-white"></i></div>
+                            <span class="participant-name flex-grow-1 fw-bold">Максим</span>
+                        </div>
+
+                        <div class="glass-box participant-card d-flex align-items-center mb-3 px-3 py-2">
+                            <div class="avatar-circle me-3"><i class="fa-solid fa-user text-white"></i></div>
+                            <span class="participant-name flex-grow-1 fw-bold">Віка</span>
+                            <span class="badge you-badge">Ви</span>
+                        </div>
                     </div>
 
-                    <div class="glass-box participant-card d-flex align-items-center mb-3 px-3 py-2">
-                        <div class="avatar-circle me-3"><i class="fa-solid fa-user text-white"></i></div>
-                        <span class="participant-name flex-grow-1 fw-bold">Віка</span>
-                        <span class="badge you-badge">Ви</span>
+                    <div v-if="activeTab === 'expenses'" class="expenses-section">
+                        <div v-if="!isFinished">
+                            <div class="mb-4">
+                                <p class="section-title mb-2">Витрати</p>
+                                <div class="glass-box d-flex justify-content-between align-items-center px-4 py-3">
+                                    <div>
+                                        <h3 class="expense-total fw-bold mb-0">1000 грн</h3>
+                                        <span class="expense-subtitle">5 транзакцій</span>
+                                    </div>
+                                    <button class="btn add-expense-btn">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <p class="section-title mb-2">Останні витрати</p>
+                                <div class="glass-box participant-card d-flex align-items-center mb-2 px-3 py-2">
+                                    <div class="avatar-circle me-3"><i class="fa-solid fa-receipt text-white"></i></div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold item-name">Квитки в метро</div>
+                                        <div class="item-details">Віка - ділять: всі</div>
+                                    </div>
+                                    <span class="fw-bold item-amount">90 грн</span>
+                                </div>
+                                <div class="glass-box participant-card d-flex align-items-center mb-2 px-3 py-2">
+                                    <div class="avatar-circle me-3"><i class="fa-solid fa-receipt text-white"></i></div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold item-name">Морозиво</div>
+                                        <div class="item-details">Аня - ділять: Максим, Аня</div>
+                                    </div>
+                                    <span class="fw-bold item-amount">120 грн</span>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <p class="section-title mb-2">Баланси</p>
+                                <div class="glass-box participant-card d-flex align-items-center mb-2 px-3 py-2">
+                                    <div class="avatar-circle me-3"><i class="fa-solid fa-user text-white"></i></div>
+                                    <span class="participant-name flex-grow-1 fw-bold">Анна</span>
+                                    <span class="fw-bold text-danger">-120 грн</span>
+                                </div>
+                                <div class="glass-box participant-card d-flex align-items-center mb-2 px-3 py-2">
+                                    <div class="avatar-circle me-3"><i class="fa-solid fa-user text-white"></i></div>
+                                    <span class="participant-name flex-grow-1 fw-bold">Максим</span>
+                                    <span class="fw-bold">0 грн</span>
+                                </div>
+                                <div class="glass-box participant-card d-flex align-items-center mb-2 px-3 py-2">
+                                    <div class="avatar-circle me-3"><i class="fa-solid fa-user text-white"></i></div>
+                                    <span class="participant-name flex-grow-1 fw-bold">Віка</span>
+                                    <span class="fw-bold text-success">+30 грн</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else>
+                            <div class="mb-4">
+                                <p class="section-title mb-3">Фінальні розрахунки</p>
+                                <div class="glass-box participant-card d-flex align-items-center mb-3 px-3 py-3">
+                                    <div class="avatar-circle me-3"><i class="fa-solid fa-money-bill-transfer text-white"></i></div>
+                                    <span class="participant-name flex-grow-1 fw-bold">Анна <i class="fa-solid fa-arrow-right mx-1 text-muted"></i> Віка</span>
+                                    <span class="fw-bold text-danger">80 грн</span>
+                                </div>
+                                <div class="glass-box participant-card d-flex align-items-center mb-3 px-3 py-3">
+                                    <div class="avatar-circle me-3"><i class="fa-solid fa-money-bill-transfer text-white"></i></div>
+                                    <span class="participant-name flex-grow-1 fw-bold">Максим <i class="fa-solid fa-arrow-right mx-1 text-muted"></i> Анна</span>
+                                    <span class="fw-bold text-danger">1000 грн</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
+                    <button v-if="isHost && !isFinished" @click="isFinished = true" class="btn brown-btn w-100 mt-4 mb-4">
+                        Завершити прогулянку
+                    </button>
                 </div>
 
-                <div v-if="activeTab === 'expenses'" class="expenses-section">
-    
-                    <div v-if="!isFinished">
-                        
-                        <div class="mb-4">
-                            <p class="section-title mb-2">Витрати</p>
-                            <div class="glass-box d-flex justify-content-between align-items-center px-4 py-3">
-                                <div>
-                                    <h3 class="expense-total fw-bold mb-0">1000 грн</h3>
-                                    <span class="expense-subtitle">5 транзакцій</span>
+
+                <div v-if="activeTab === 'map'" class="d-flex flex-column flex-lg-row gap-4 align-items-start w-100">
+                    
+                    <div class="map-placeholder d-none d-lg-flex flex-column glass-box p-0 overflow-hidden w-100" style="flex: 1; min-height: 550px;">
+                        <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(98, 80, 80, 0.05); min-height: 550px;">
+                            <i class="fa-solid fa-map-location-dot mb-3" style="font-size: 64px; color: #292CA8; opacity: 0.5;"></i>
+                            <h4 class="fw-bold" style="color: #625050;">Мапа маршруту</h4>
+                            <p class="text-muted small">Сюди потім підключимо OpenStreetMap</p>
+                        </div>
+                    </div>
+
+                    <div class="controls-column w-100 d-flex flex-column" style="max-width: 450px; margin: 0 auto;">
+                        <div v-if="isSwiping">
+                            <LocationCards />
+                        </div>
+
+                        <div v-else>
+                            <div v-if="isHost" class="glass-box p-4 mb-4">
+                                <p class="fw-bold mb-3" style="color: #3b1c1c;">Параметри прогулянки</p>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small mb-1">Бюджет (на людину)</label>
+                                    <select class="form-select custom-select">
+                                        <option value="low">До 500 грн</option>
+                                        <option value="medium">500 - 1000 грн</option>
+                                        <option value="high">Необмежено</option>
+                                    </select>
                                 </div>
-                                <button class="btn add-expense-btn">
-                                    <i class="fa-solid fa-plus"></i>
+
+                                <div class="mb-4">
+                                    <label class="form-label text-muted small mb-1">Радіус пошуку</label>
+                                    <select class="form-select custom-select">
+                                        <option value="walk">Пішки (до 2 км)</option>
+                                        <option value="medium">Середній (до 5 км)</option>
+                                        <option value="far">На таксі (весь Київ)</option>
+                                    </select>
+                                </div>
+
+                                <button @click="startSwipe" class="btn brown-btn w-100">
+                                    Знайти локації
                                 </button>
                             </div>
-                        </div>
 
-                        <div class="mb-4">
-                            <p class="section-title mb-2">Останні витрати</p>
-                            
-                            <div class="glass-box participant-card d-flex align-items-center mb-2 px-3 py-2">
-                                <div class="avatar-circle me-3"><i class="fa-solid fa-receipt text-white"></i></div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-bold item-name">Квитки в метро</div>
-                                    <div class="item-details">Віка - ділять: всі</div>
+                            <div v-else class="glass-box p-4 text-center mb-4">
+                                <div class="mb-3">
+                                    <i class="fa-solid fa-compass fa-spin fs-1" style="color: #292CA8;"></i>
                                 </div>
-                                <span class="fw-bold item-amount">90 грн</span>
-                            </div>
-
-                            <div class="glass-box participant-card d-flex align-items-center mb-2 px-3 py-2">
-                                <div class="avatar-circle me-3"><i class="fa-solid fa-receipt text-white"></i></div>
-                                <div class="flex-grow-1">
-                                    <div class="fw-bold item-name">Морозиво</div>
-                                    <div class="item-details">Аня - ділять: Максим, Аня</div>
-                                </div>
-                                <span class="fw-bold item-amount">120 грн</span>
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <p class="section-title mb-2">Баланси</p>
-                            
-                            <div class="glass-box participant-card d-flex align-items-center mb-2 px-3 py-2">
-                                <div class="avatar-circle me-3"><i class="fa-solid fa-user text-white"></i></div>
-                                <span class="participant-name flex-grow-1 fw-bold">Анна</span>
-                                <span class="fw-bold text-danger">-120 грн</span>
-                            </div>
-
-                            <div class="glass-box participant-card d-flex align-items-center mb-2 px-3 py-2">
-                                <div class="avatar-circle me-3"><i class="fa-solid fa-user text-white"></i></div>
-                                <span class="participant-name flex-grow-1 fw-bold">Максим</span>
-                                <span class="fw-bold">0 грн</span>
-                            </div>
-
-                            <div class="glass-box participant-card d-flex align-items-center mb-2 px-3 py-2">
-                                <div class="avatar-circle me-3"><i class="fa-solid fa-user text-white"></i></div>
-                                <span class="participant-name flex-grow-1 fw-bold">Віка</span>
-                                <span class="fw-bold text-success">+30 грн</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div v-else>
-                        <div class="mb-4">
-                            <p class="section-title mb-3">Фінальні розрахунки</p>
-                    
-                            <div class="glass-box participant-card d-flex align-items-center mb-3 px-3 py-3">
-                                <div class="avatar-circle me-3"><i class="fa-solid fa-money-bill-transfer text-white"></i></div>
-                                <span class="participant-name flex-grow-1 fw-bold">Анна <i class="fa-solid fa-arrow-right mx-1 text-muted"></i> Віка</span>
-                                <span class="fw-bold text-danger">80 грн</span>
-                            </div>
-
-                            <div class="glass-box participant-card d-flex align-items-center mb-3 px-3 py-3">
-                                <div class="avatar-circle me-3"><i class="fa-solid fa-money-bill-transfer text-white"></i></div>
-                                <span class="participant-name flex-grow-1 fw-bold">Максим <i class="fa-solid fa-arrow-right mx-1 text-muted"></i> Анна</span>
-                                <span class="fw-bold text-danger">1000 грн</span>
+                                <h5 class="fw-bold" style="color: #3b1c1c;">Очікуємо на хоста</h5>
+                                <p class="text-muted mb-0" style="font-size: 14px;">Хост зараз налаштовує параметри та радіус нашої прогулянки...</p>
                             </div>
                         </div>
 
                     </div>
                 </div>
 
-                <div v-if="activeTab === 'map'" class="map-section">
-                    <p class="section-title mb-3">Налаштування маршруту</p>
-                    
-                    <div v-if="isHost" class="glass-box p-4 mb-4">
-                        <p class="fw-bold mb-3" style="color: #3b1c1c;">Параметри прогулянки</p>
-                        
-                        <div class="mb-3">
-                            <label class="form-label text-muted small mb-1">Бюджет (на людину)</label>
-                            <select class="form-select custom-select">
-                                <option value="low">До 500 грн</option>
-                                <option value="medium">500 - 1000 грн</option>
-                                <option value="high">Необмежено</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label text-muted small mb-1">Радіус пошуку</label>
-                            <select class="form-select custom-select">
-                                <option value="walk">Пішки (до 2 км)</option>
-                                <option value="medium">Середній (до 5 км)</option>
-                                <option value="far">На таксі (весь Київ)</option>
-                            </select>
-                        </div>
-
-                        <button class="btn brown-btn w-100">
-                            Знайти локації
-                        </button>
-                    </div>
-
-                    <div v-else class="glass-box p-4 text-center mb-4">
-                        <div class="mb-3">
-                            <i class="fa-solid fa-compass fa-spin fs-1" style="color: #292CA8;"></i>
-                        </div>
-                        <h5 class="fw-bold" style="color: #3b1c1c;">Очікуємо на хоста</h5>
-                        <p class="text-muted mb-0" style="font-size: 14px;">Хост зараз налаштовує параметри та радіус нашої прогулянки. Зачекайте трохи...</p>
-                    </div>
-                </div>
-
-                <button v-if="isHost && !isFinished" @click="isFinished = true" class="btn brown-btn w-100 mt-4 mb-4">
-                    Завершити прогулянку
-                </button>
             </div>
 
         </main>
@@ -281,6 +299,12 @@ const copyCode = () => {
 .content-wrapper{
     width: 100%;
     max-width: 600px;
+}
+
+@media (min-width: 768px) {
+    .content-wrapper {
+        max-width: 1100px; 
+    }
 }
 
 .room-header {
