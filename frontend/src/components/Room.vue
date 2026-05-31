@@ -127,15 +127,11 @@ async function loadExpensesAndBalances() {
   }
 }
 
-// ДОДАЛИ ФУНКЦІЮ, ЯКОЇ НЕ ВИСТАЧАЛО У ТВОРЧОМУ ХАОСІ 😉
 async function generateRoute() {
   routeLoading.value = true;
   routeError.value = '';
   try {
-    // Тут у майбутньому може бути реальний запит до бекенду:
     // await roomsApi.generateRoute(roomId.value, { budget: selectedBudget.value, radius: selectedRadius.value, lat: userLat.value, lon: userLon.value });
-    
-    // Імітуємо завантаження та відкриваємо картки
     setTimeout(() => {
         isSwiping.value = true;
         routeLoading.value = false;

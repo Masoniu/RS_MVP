@@ -5,32 +5,45 @@ import { useAuthStore } from '../stores/auth';
 import { roomsApi } from '../api/rooms';
 
 const router = useRouter();
-
 const authStore = useAuthStore();
-const userName = computed(() => authStore.user?.name || authStore.user?.email || 'Друже');
+
+const userName = computed(() => authStore.user?.name || authStore.user?.email?.split('@')[0] || 'Друже');
 
 const inviteCode = ref('');
 const joinError = ref('');
 const joinLoading = ref(false);
 
-//Потрібно переписати, щоб коректно повертало список кімнат
-const hasActiveRoom = ref(null);
+const myRooms = ref([]);
+const roomsLoading = ref(false);
+
+const activeRoom = computed(() =>
+  myRooms.value.find((r) => r.status === 'active') || null
+);
+
+const finishedRooms = computed(() =>
+  myRooms.value.filter((r) => r.status === 'finished')
+);
 
 onMounted(async () => {
-  const savedRoomId = localStorage.getItem('active_room_id');
-  if (savedRoomId) {
-    try {
-      const { data } = await roomsApi.getRoom(savedRoomId);
-      if (data.status === 'active') {
-        hasActiveRoom.value = data;
-      } else {
-        localStorage.removeItem('active_room_id');
-      }
-    } catch {
+  await loadMyRooms();
+});
+
+async function loadMyRooms() {
+  roomsLoading.value = true;
+  try {
+    const { data } = await roomsApi.getMyRooms();
+    myRooms.value = data;
+
+    if (activeRoom.value) {
+      localStorage.setItem('active_room_id', activeRoom.value.id);
+    } else {
       localStorage.removeItem('active_room_id');
     }
+  } catch {
+  } finally {
+    roomsLoading.value = false;
   }
-});
+}
 
 async function joinRoom() {
   if (!inviteCode.value.trim()) return;
@@ -51,6 +64,15 @@ function logout() {
   authStore.logout();
   localStorage.removeItem('active_room_id');
   router.push('/');
+}
+
+function goToProfile() {
+  router.push('/profile');
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
 }
 </script>
 
@@ -75,21 +97,6 @@ function logout() {
 
         <div class="flex-grow-1 d-flex align-items-center justify-content-center p-4 position-relative z-2">
             <div class="lobby-content w-100">
-
-                <div v-if="hasActiveRoom" class="glass-box active-trip-banner p-3 mb-4 d-flex justify-content-between align-items-center z-2">
-                    <div class="d-flex align-items-center">
-                        <div class="banner-icon me-3">
-                            <i class="fa-solid fa-route text-white"></i>
-                        </div>
-                        <div>
-                            <h6 class="fw-bold mb-0 text-dark-brown">У тебе є активна прогулянка!</h6>
-                            <p class="text-muted small mb-0">{{ activeRoom.name }}</p>
-                        </div>
-                    </div>
-                    <button @click="router.push(`/room/${activeRoom.id}`)" class="btn brown-btn btn-sm px-3">
-                        Повернутися
-                    </button>
-                </div>
                 
                 <section class="welcome-section text-center mb-4">
                     <h1 class="fw-bold greeting-text mb-2">Привіт, {{ userName }}!</h1>
@@ -130,9 +137,35 @@ function logout() {
                     <span>або</span>
                 </div>
 
-                <button @click="router.push('/create-room')" class="btn w-100 create-btn mx-auto d-block">
+                <button @click="router.push('/create-room')" class="btn w-100 create-btn mx-auto d-block mb-5">
                     <i class="fa-solid fa-plus me-2"></i> Створити кімнату
                 </button>
+
+                <div v-if="roomsLoading" class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm" style="color: #292CA8;"></div>
+                </div>
+
+                <div v-else-if="myRooms.length > 0" class="my-rooms-section">
+                    <p class="section-label mb-3">Мої прогулянки</p>
+
+                    <div
+                        v-for="room in myRooms"
+                        :key="room.id"
+                        class="glass-box room-card d-flex align-items-center px-3 py-3 mb-3"
+                        @click="router.push(`/room/${room.id}`)"
+                    >
+                        <div class="room-icon me-3" :class="room.status === 'active' ? 'icon-active' : 'icon-finished'">
+                            <i class="fa-solid" :class="room.status === 'active' ? 'fa-location-dot' : 'fa-flag-checkered'"></i>
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="room-name fw-bold text-truncate">{{ room.name }}</div>
+                            <div class="room-meta">{{ formatDate(room.created_at) }}</div>
+                        </div>
+                        <span class="room-badge ms-2" :class="room.status === 'active' ? 'badge-active' : 'badge-finished'">
+                            {{ room.status === 'active' ? 'Активна' : 'Завершена' }}
+                        </span>
+                    </div>
+                </div>
                 
             </div>
         </div>
@@ -181,20 +214,16 @@ function logout() {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.mini-logo { 
-    height: 35px; 
-}
+.mini-logo { height: 35px; }
 
-.mini-title {
-    font-size: 20px; 
-    color: #ffffff; 
-}
+.mini-title { font-size: 20px; color: #ffffff; }
 
 .logout-btn {
     color: rgba(255,255,255,0.8);
     border: 1px solid rgba(255,255,255,0.3);
     border-radius: 10px;
     font-size: 13px;
+    background: transparent;
 }
 .logout-btn:hover { color: #fff; border-color: #fff; }
 
@@ -213,16 +242,7 @@ function logout() {
     max-width: 400px;
 }
 
-.greeting-text { 
-    font-size: 30px; 
-    color: #292CA8;
-}
-
-.subtitle {
-    color: #646dd2; 
-    opacity: 0.9; 
-    font-size: 16px;
-}
+.greeting-text { font-size: 30px; color: #292CA8; }
 
 .glass-card {
     width: 100%;
@@ -237,9 +257,7 @@ function logout() {
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
 }
 
-.form-wrapper {
-    max-width: 320px; 
-}
+.form-wrapper { max-width: 320px; }
 
 .glass-card-title {
     font-weight: 700; 
@@ -261,6 +279,11 @@ function logout() {
     box-shadow: 0 0 0 2px rgba(41, 44, 165, 0.2);
 }
 
+.error-glow {
+    border-color: #e05858 !important;
+    box-shadow: 0 0 0 2px rgba(224, 88, 88, 0.2) !important;
+}
+
 .brown-btn {
     background-color: #625050;
     color: #ffffff;
@@ -270,7 +293,8 @@ function logout() {
     font-weight: 600;
     transition: all 0.3s ease;
 }
-.brown-btn:hover { background-color: #4a3c3c; }
+.brown-btn:hover:not(:disabled) { background-color: #4a3c3c; }
+.brown-btn:disabled { opacity: 0.65; cursor: not-allowed; }
 
 .create-btn {
     background-color: #ffffff;
@@ -298,19 +322,20 @@ function logout() {
     border-bottom: 1px solid #625050; 
 }
 
-.divider span {
-    padding: 0 15px; 
-    font-size: 14px; 
+.divider span { padding: 0 15px; font-size: 14px; }
+
+.text-dark-brown { color: #3b1c1c; }
+
+.glass-box {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
 }
 
-.text-dark-brown {
-    color: #3b1c1c;
-}
-
-.active-trip-banner {
-    border-left: 5px solid #292CA8;
-    width: 100%;
-}
+.active-trip-banner { border-left: 5px solid #292CA8; width: 100%; }
 
 .banner-icon {
     width: 40px;
@@ -322,4 +347,49 @@ function logout() {
     justify-content: center;
     box-shadow: 0 2px 8px rgba(41, 44, 165, 0.2);
 }
+
+.section-label {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #625050;
+    opacity: 0.7;
+}
+
+.room-card {
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.room-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(31, 38, 135, 0.1) !important;
+}
+
+.room-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+.icon-active  { background-color: rgba(41, 44, 165, 0.12); color: #292CA8; }
+.icon-finished { background-color: rgba(98, 80, 80, 0.1); color: #625050; }
+
+.room-name  { font-size: 15px; color: #3b1c1c; }
+.room-meta  { font-size: 12px; color: #625050; opacity: 0.7; margin-top: 1px; }
+
+.room-badge {
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 20px;
+    padding: 3px 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.badge-active   { background: rgba(41, 44, 165, 0.1);  color: #292CA8; }
+.badge-finished { background: rgba(98, 80, 80, 0.1);   color: #625050; }
 </style>
