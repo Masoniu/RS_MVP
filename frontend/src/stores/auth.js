@@ -19,20 +19,23 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(email, password) {
-    const { data } = await authApi.login({ email, password })
-    _setTokens(data.access_token, data.refresh_token)
+  const { data } = await authApi.login({ email, password })
+  _setTokens(data.access_token, data.refresh_token)
 
-    const payload = _decodeJwt(data.access_token)
-    const existing = JSON.parse(localStorage.getItem('user') || 'null')
-    const userData = {
-      id: payload ? parseInt(payload.sub) : null,
-      email,
-      name: existing?.name || null,
-    }
-    user.value = userData
-    localStorage.setItem('user', JSON.stringify(userData))
-    return data
+  const payload = _decodeJwt(data.access_token)
+
+  console.log("РОЗКОДОВАНИЙ ТОКЕН:", payload)
+  
+  const userData = {
+    id: payload ? parseInt(payload.sub) : null,
+    email: payload?.email || email,
+    name: payload?.name || null, 
   }
+  
+  user.value = userData
+  localStorage.setItem('user', JSON.stringify(userData))
+  return data
+}
 
   function logout() {
     accessToken.value = null

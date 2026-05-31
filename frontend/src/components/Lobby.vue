@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { roomsApi } from '../api/rooms';
@@ -7,7 +7,7 @@ import { roomsApi } from '../api/rooms';
 const router = useRouter();
 
 const authStore = useAuthStore();
-const userName = ref(authStore.user?.name || authStore.user?.email || 'Юначе');
+const userName = computed(() => authStore.user?.name || authStore.user?.email || 'Друже');
 
 const inviteCode = ref('');
 const joinError = ref('');

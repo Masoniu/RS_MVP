@@ -41,13 +41,16 @@ def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
 
     if not user or not verify_password(form_data.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Невірний email або пароль",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token = create_access_token(data={"sub": str(user.id)})
-    refresh_token = create_refresh_token(data={"sub": str(user.id)})
+        raise HTTPException(status_code=401, detail="Невірний email або пароль")
+        
+    token_data = {
+        "sub": str(user.id),
+        "name": user.name,
+        "email": user.email
+    }
+    
+    access_token = create_access_token(data=token_data)
+    refresh_token = create_refresh_token(data={"sub": str(user.id)}) 
 
     return {
         "access_token": access_token,
