@@ -60,12 +60,6 @@ async function joinRoom() {
   }
 }
 
-function logout() {
-  authStore.logout();
-  localStorage.removeItem('active_room_id');
-  router.push('/');
-}
-
 function goToProfile() {
   router.push('/profile');
 }
@@ -88,8 +82,7 @@ function formatDate(dateStr) {
                 <h2 class="fw-bold mb-0 mini-title">RouteSplitter</h2>
             </div>
             <div class="d-flex align-items-center gap-3">
-                <button @click="logout" class="btn btn-sm logout-btn">Вийти</button>
-                <div class="avatar-circle">
+                <div class="avatar-circle" @click="goToProfile" title="Профіль">
                     <i class="fa-solid fa-user text-white"></i>
                 </div>
             </div>
@@ -218,15 +211,6 @@ function formatDate(dateStr) {
 
 .mini-title { font-size: 20px; color: #ffffff; }
 
-.logout-btn {
-    color: rgba(255,255,255,0.8);
-    border: 1px solid rgba(255,255,255,0.3);
-    border-radius: 10px;
-    font-size: 13px;
-    background: transparent;
-}
-.logout-btn:hover { color: #fff; border-color: #fff; }
-
 .avatar-circle {
     width: 40px;
     height: 40px;
@@ -235,7 +219,10 @@ function formatDate(dateStr) {
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
 }
+.avatar-circle:hover { background-color: rgba(255, 255, 255, 0.35); }
 
 .lobby-content {
     width: 100%;

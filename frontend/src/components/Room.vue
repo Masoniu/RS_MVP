@@ -221,6 +221,10 @@ const copyCode = () => {
     navigator.clipboard.writeText(roomCode.value);
     console.log('Код скопійовано!');
 };
+
+function goToProfile() {
+  router.push('/profile');
+}
 </script>
 
 <template>
@@ -241,7 +245,7 @@ const copyCode = () => {
             </nav>
 
             <div class="d-flex justify-content-end header-side">
-                <div class="avatar-circle">
+                <div class="avatar-circle" @click="goToProfile" title="Профіль">
                     <i class="fa-solid fa-user text-white"></i>
                 </div>
             </div>
@@ -668,7 +672,11 @@ const copyCode = () => {
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        cursor: pointer;
+    transition: background-color 0.2s;
 }
+
+.avatar-circle:hover { background-color: rgba(255, 255, 255, 0.35); }
 
 .avatar-circle i {
     font-size: 18px;
