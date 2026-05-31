@@ -1,6 +1,10 @@
 import api from './client'
 
 export const roomsApi = {
+  getMyRooms() {
+    return api.get('/rooms/my')
+  },
+
   getRoom(roomId) {
     return api.get(`/rooms/${roomId}`)
   },

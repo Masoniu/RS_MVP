@@ -85,6 +85,21 @@ def join_room(
     }
 
 
+@router.get("/my", response_model=list[RoomResponse])
+def get_my_rooms(
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(get_current_user)
+):
+    rooms = (
+        db.query(models.Room)
+        .join(models.RoomMember, models.Room.id == models.RoomMember.room_id)
+        .filter(models.RoomMember.user_id == current_user.id)
+        .order_by(models.Room.created_at.desc())
+        .all()
+    )
+    return rooms
+
+
 @router.get("/{room_id}", response_model=RoomDetailResponse)
 def get_room_details(
         room_id: int,
