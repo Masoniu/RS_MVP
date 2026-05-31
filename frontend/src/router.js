@@ -28,6 +28,11 @@ const routes = [
     path: '/create-room',
     name: 'CreatingRoom',
     component: () => import('./components/CreatingRoom.vue')
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('./components/Profile.vue')
   }
 ]
 
