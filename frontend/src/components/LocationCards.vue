@@ -1,94 +1,74 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
-const places = ref([
-    { 
-        id: 1, 
-        name: 'Кавʼярня "Зерно"', 
-        description: 'Смачна кава та десерти на Подолі',
-        distance: '350 м',
-        price: '₴₴'
-    },
-    { 
-        id: 2, 
-        name: 'Піцерія "Маріо"', 
-        description: 'Швидко, ситно і недорого',
-        distance: '1.2 км',
-        price: '₴'
-    },
-    { 
-        id: 3, 
-        name: 'Ресторан "Поділ Гріль"', 
-        description: 'Мʼясні страви та гарна тераса',
-        distance: '850 м',
-        price: '₴₴₴'
-    },
-    { 
-        id: 4, 
-        name: 'Бар "Хвильовий"', 
-        description: 'Коктейлі та крафтове пиво',
-        distance: '500 м',
-        price: '₴₴'
-    }
-]);
+const props = defineProps({
+    locations: { type: Array, required: true },
+    categoryTitle: { type: String, default: 'Локація' },
+    remainingBudget: { type: Number, required: true }
+});
 
-const likedCount = ref(0);
-const MAX_LIKES = 3;
-const isFinished = ref(false);
+const emit = defineEmits(['choiceMade', 'empty']);
+
+const places = ref([]);
 const flyDirection = ref(null);
-
-const handleChoice = (isLiked) => {
-    if (places.value.length === 0 || isFinished.value || flyDirection.value) return;
-    
-    flyDirection.value = isLiked ? 'right' : 'left';
-
-    setTimeout(() => {
-        if (isLiked) {
-            likedCount.value++;
-        }
-
-        places.value.shift();
-        
-        flyDirection.value = null;
-        offsetX.value = 0;
-
-        if (likedCount.value >= MAX_LIKES) {
-            isFinished.value = true;
-        }
-    }, 300);
-};
-
 const isDragging = ref(false);
 const startX = ref(0);
 const offsetX = ref(0);
 
+watch(() => props.locations, (newVal) => {
+    places.value = [...newVal];
+}, { immediate: true });
+
+const handleChoice = (isLiked) => {
+    if (places.value.length === 0 || flyDirection.value) return;
+
+    const currentPlace = places.value[0];
+
+    if (isLiked && currentPlace.price > props.remainingBudget) {
+        alert(`Недостатньо бюджету! Це коштує ${currentPlace.price} грн, а у вас залишилось ${props.remainingBudget} грн.`);
+        return;
+    }
+
+    flyDirection.value = isLiked ? 'right' : 'left';
+
+    setTimeout(() => {
+        if (isLiked) {
+            emit('choiceMade', currentPlace);
+        } else {
+            places.value.shift();
+            if (places.value.length === 0) {
+                emit('empty');
+            }
+        }
+
+        flyDirection.value = null;
+        offsetX.value = 0;
+    }, 300);
+};
+
 const startDrag = (event) => {
-    if (places.value.length === 0 || isFinished.value || flyDirection.value) return;
+    if (places.value.length === 0 || flyDirection.value) return;
     isDragging.value = true;
     startX.value = event.type.includes('mouse') ? event.pageX : event.touches[0].clientX;
 };
 
 const onDrag = (event) => {
     if (!isDragging.value) return;
-    
     const currentX = event.type.includes('mouse') ? event.pageX : event.touches[0].clientX;
-    offsetX.value = currentX - startX.value; 
+    offsetX.value = currentX - startX.value;
 };
 
 const endDrag = () => {
     if (!isDragging.value) return;
     isDragging.value = false;
-    
-    const threshold = 100;
 
+    const threshold = 100;
     if (offsetX.value > threshold) {
         handleChoice(true);
     } else if (offsetX.value < -threshold) {
         handleChoice(false);
     } else {
-        requestAnimationFrame(() => {
-            offsetX.value = 0;
-        });
+        requestAnimationFrame(() => offsetX.value = 0);
     }
 };
 </script>

@@ -5,12 +5,32 @@ import { useAuthStore } from '../stores/auth';
 import { roomsApi } from '../api/rooms';
 import { expensesApi } from '../api/expenses';
 import LocationCards from '../components/LocationCards.vue';
+import { nextTick } from 'vue';
 
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
 
 const roomId = computed(() => parseInt(route.params.id));
+
+const candidates = ref({ parks: [], museums: [], cafes: [] });
+const currentStep = ref(0); // 0: парки, 1: музеї, 2: кафе, 3: фінал
+const selectedLocations = ref([]);
+const remainingBudget = ref(0);
+
+const currentCategoryLocations = computed(() => {
+    if (currentStep.value === 0) return candidates.value.parks;
+    if (currentStep.value === 1) return candidates.value.museums;
+    if (currentStep.value === 2) return candidates.value.cafes;
+    return [];
+});
+
+const currentCategoryTitle = computed(() => {
+    if (currentStep.value === 0) return 'Оберіть парк';
+    if (currentStep.value === 1) return 'Оберіть музей';
+    if (currentStep.value === 2) return 'Оберіть кафе';
+    return '';
+});
 
 const room = ref(null);
 const members = ref([]);
@@ -128,18 +148,64 @@ async function loadExpensesAndBalances() {
 }
 
 async function generateRoute() {
-  routeLoading.value = true;
-  routeError.value = '';
-  try {
-    // await roomsApi.generateRoute(roomId.value, { budget: selectedBudget.value, radius: selectedRadius.value, lat: userLat.value, lon: userLon.value });
-    setTimeout(() => {
+    routeLoading.value = true;
+    routeError.value = '';
+    try {
+        const { data } = await roomsApi.getRouteCandidates(roomId.value, {
+            lat: userLat.value,
+            lon: userLon.value,
+            radiusKm: selectedRadius.value
+        });
+        candidates.value = data;
+        remainingBudget.value = selectedBudget.value;
+        currentStep.value = 0;
+        selectedLocations.value = [];
         isSwiping.value = true;
+    } catch (err) {
+        routeError.value = err.response?.data?.detail || 'Помилка при пошуку локацій';
+    } finally {
         routeLoading.value = false;
-    }, 800);
-  } catch (err) {
-    routeError.value = err.response?.data?.detail || 'Помилка при генерації маршруту';
-    routeLoading.value = false;
-  }
+    }
+}
+
+async function onLocationSelected(place) {
+    selectedLocations.value.push(place);
+    remainingBudget.value -= place.price;
+    currentStep.value++;
+
+    if (currentStep.value > 2) {
+        isSwiping.value = false;
+        try {
+            await roomsApi.saveRoute(roomId.value, {
+                budget: selectedBudget.value,
+                radius_km: selectedRadius.value,
+                locations: selectedLocations.value
+            });
+            drawMap();
+        } catch (err) {
+            console.error("Помилка збереження", err);
+        }
+    }
+}
+
+async function onLocationSelected(place) {
+    selectedLocations.value.push(place);
+    remainingBudget.value -= place.price;
+    currentStep.value++;
+
+    if (currentStep.value > 2) {
+        isSwiping.value = false;
+        try {
+            await roomsApi.saveRoute(roomId.value, {
+                budget: selectedBudget.value,
+                radius_km: selectedRadius.value,
+                locations: selectedLocations.value
+            });
+            drawMap(); // Малюємо мапу!
+        } catch (err) {
+            console.error("Помилка збереження", err);
+        }
+    }
 }
 
 const totalExpenses = computed(() =>
@@ -409,18 +475,29 @@ function goToProfile() {
                 <div v-if="activeTab === 'map'" class="d-flex flex-column flex-lg-row gap-4 align-items-start w-100">
                     
                     <div class="map-placeholder d-none d-lg-flex flex-column glass-box p-0 overflow-hidden w-100" style="flex: 1; min-height: 550px;">
-                        <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(98, 80, 80, 0.05); min-height: 550px;">
+                        <div id="route-map-container" class="w-100 h-100" style="min-height: 550px; z-index: 1;">
+                            <div v-if="selectedLocations.length < 3" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(98, 80, 80, 0.05);">
                             <i class="fa-solid fa-map-location-dot mb-3" style="font-size: 64px; color: #292CA8; opacity: 0.5;"></i>
                             <h4 class="fw-bold" style="color: #625050;">Мапа маршруту</h4>
-                            <p class="text-muted small">Сюди потім підключимо OpenStreetMap</p>
+                            <p class="text-muted small">Пройдіть процес вибору локацій!</p>
                         </div>
                     </div>
+                </div>
 
                     <div class="controls-column w-100 d-flex flex-column" style="max-width: 450px; margin: 0 auto;">
                         
                         <div v-if="isSwiping">
-                            <LocationCards />
+                            <div class="text-center mb-2">
+                            <h5 class="fw-bold text-primary">{{ currentCategoryTitle }}</h5>
+                            <span class="badge bg-success">Залишок: {{ remainingBudget }} грн</span>
                         </div>
+                         <LocationCards
+                         :locations="currentCategoryLocations"
+                         :remainingBudget="remainingBudget"
+                         @choiceMade="onLocationSelected"
+                         @empty="routeError = 'Локації цієї категорії закінчились :('"
+                        />
+                    </div>
 
                         <div v-else>
                             <div v-if="isHost && !isFinished" class="glass-box p-4 mb-4">

@@ -37,4 +37,12 @@ export const roomsApi = {
       longitude,
     })
   },
+
+  getRouteCandidates(roomId, { lat, lon, radiusKm }) {\
+    return api.post(`/rooms/${roomId}/route-candidates?lat=${lat}&lon=${lon}&radius_km=${radiusKm}`)
+  },
+
+  saveRoute(roomId, payload) {
+    return api.post(`/rooms/${roomId}/save-route`, payload)
+  },
 }
