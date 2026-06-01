@@ -16,6 +16,8 @@ const joinLoading = ref(false);
 const myRooms = ref([]);
 const roomsLoading = ref(false);
 
+const activeRoomsList = computed(() => myRooms.value.filter((r) => r.status === 'active'));
+
 const activeRoom = computed(() =>
   myRooms.value.find((r) => r.status === 'active') || null
 );
@@ -138,25 +140,23 @@ function formatDate(dateStr) {
                     <div class="spinner-border spinner-border-sm" style="color: #292CA8;"></div>
                 </div>
 
-                <div v-else-if="myRooms.length > 0" class="my-rooms-section">
+                <div v-else-if="activeRoomsList.length > 0" class="my-rooms-section">
                     <p class="section-label mb-3">Мої прогулянки</p>
 
                     <div
-                        v-for="room in myRooms"
+                        v-for="room in activeRoomsList"
                         :key="room.id"
                         class="glass-box room-card d-flex align-items-center px-3 py-3 mb-3"
                         @click="router.push(`/room/${room.id}`)"
                     >
-                        <div class="room-icon me-3" :class="room.status === 'active' ? 'icon-active' : 'icon-finished'">
-                            <i class="fa-solid" :class="room.status === 'active' ? 'fa-location-dot' : 'fa-flag-checkered'"></i>
+                        <div class="room-icon me-3 icon-active">
+                            <i class="fa-solid fa-location-dot"></i>
                         </div>
                         <div class="flex-grow-1 min-w-0">
                             <div class="room-name fw-bold text-truncate">{{ room.name }}</div>
                             <div class="room-meta">{{ formatDate(room.created_at) }}</div>
                         </div>
-                        <span class="room-badge ms-2" :class="room.status === 'active' ? 'badge-active' : 'badge-finished'">
-                            {{ room.status === 'active' ? 'Активна' : 'Завершена' }}
-                        </span>
+                        <span class="room-badge ms-2 badge-active"></span>
                     </div>
                 </div>
                 
