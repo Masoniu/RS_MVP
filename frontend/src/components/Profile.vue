@@ -25,6 +25,8 @@ const activeRooms = computed(() => myRooms.value.filter((r) => r.status === 'act
 const finishedRooms = computed(() => myRooms.value.filter((r) => r.status === 'finished').length);
 
 const recentRooms = computed(() => myRooms.value.slice(0, 5));
+const finishedRoomList = computed(() => myRooms.value.filter((r) => r.status === 'finished'));
+const showHistory = ref(false);
 
 onMounted(async () => {
   try {
@@ -71,7 +73,7 @@ function logout() {
     </header>
 
     <div class="flex-grow-1 d-flex justify-content-center p-4 position-relative z-2">
-      <div class="profile-content w-100">
+      <div class="profile-content w-100 mx-auto" style="max-width: 900px;">
 
         <div class="text-center mb-4 mt-2">
           <div class="big-avatar mx-auto mb-3">
@@ -128,25 +130,33 @@ function logout() {
 
         </div>
 
-        <div v-if="!statsLoading && recentRooms.length > 0" class="mb-4">
-          <p class="section-label mb-3">Останні прогулянки</p>
+        <div v-if="!statsLoading && finishedRoomList.length > 0" class="history-section mt-2 pb-5">
+          <button v-if="!showHistory" @click="showHistory = true" class="btn brown-btn w-100 mx-auto d-block" style="max-width: 400px;">
+            <i class="fa-solid fa-clock-rotate-left me-2"></i> Переглянути історію прогулянок
+          </button>
 
-          <div
-            v-for="room in recentRooms"
-            :key="room.id"
-            class="glass-box room-card d-flex align-items-center px-3 py-3 mb-3"
-            @click="router.push(`/room/${room.id}`)"
-          >
-            <div class="room-icon me-3" :class="room.status === 'active' ? 'icon-active' : 'icon-finished'">
-              <i class="fa-solid" :class="room.status === 'active' ? 'fa-location-dot' : 'fa-flag-checkered'"></i>
+          <div v-if="showHistory" class="history-grid-wrapper fade-in">
+            <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
+              <p class="section-label mb-0">Завершені прогулянки</p>
+              <button @click="showHistory = false" class="btn btn-sm text-muted" style="background: none; border: none;">
+                <i class="fa-solid fa-chevron-up me-1"></i> Згорнути
+              </button>
             </div>
-            <div class="flex-grow-1 min-w-0">
-              <div class="room-name fw-bold text-truncate">{{ room.name }}</div>
-              <div class="room-meta">{{ formatDateShort(room.created_at) }}</div>
+
+            <div class="row g-3">
+              <div v-for="room in finishedRoomList" :key="room.id" class="col-12 col-md-6 col-lg-4">
+                <div class="glass-box room-card d-flex align-items-center px-3 py-3 h-100" @click="router.push(`/room/${room.id}`)">
+                  <div class="room-icon me-3 icon-finished">
+                    <i class="fa-solid fa-flag-checkered"></i>
+                  </div>
+                  <div class="flex-grow-1 min-w-0">
+                    <div class="room-name fw-bold text-truncate">{{ room.name }}</div>
+                    <div class="room-meta">{{ formatDateShort(room.created_at) }}</div>
+                  </div>
+                  <span class="room-badge ms-2 badge-finished">Завершена</span>
+                </div>
+              </div>
             </div>
-            <span class="room-badge ms-2" :class="room.status === 'active' ? 'badge-active' : 'badge-finished'">
-              {{ room.status === 'active' ? 'Активна' : 'Завершена' }}
-            </span>
           </div>
         </div>
 
