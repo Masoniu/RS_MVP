@@ -188,26 +188,6 @@ async function onLocationSelected(place) {
     }
 }
 
-async function onLocationSelected(place) {
-    selectedLocations.value.push(place);
-    remainingBudget.value -= place.price;
-    currentStep.value++;
-
-    if (currentStep.value > 2) {
-        isSwiping.value = false;
-        try {
-            await roomsApi.saveRoute(roomId.value, {
-                budget: selectedBudget.value,
-                radius_km: selectedRadius.value,
-                locations: selectedLocations.value
-            });
-            drawMap(); // Малюємо мапу!
-        } catch (err) {
-            console.error("Помилка збереження", err);
-        }
-    }
-}
-
 const totalExpenses = computed(() =>
   expenses.value.reduce((sum, e) => sum + e.amount, 0)
 );
