@@ -200,19 +200,31 @@ function toggleSplitMember(memberId) {
   else newExpense.value.splitBetween.splice(idx, 1);
 }
 
-async function finishRoom() {
-  if (!confirm('Завершити прогулянку? Це не можна відмінити.')) return;
-  try {
-    await roomsApi.finishRoom(roomId.value);
-    localStorage.removeItem('active_room_id');
-    room.value.status = 'finished';
-    await loadExpensesAndBalances();
-  } catch (err) {
-    alert(err.response?.data?.detail || 'Помилка');
-  }
+const showFinishModal = ref(false);
+
+const promptFinishRoom = () => {
+    showFinishModal.value = true;
+};
+
+async function confirmFinishRoom() {
+    showFinishModal.value = false;
+    try {
+        await roomsApi.finishRoom(roomId.value);
+        localStorage.removeItem('active_room_id');
+        room.value.status = 'finished';
+        await loadExpensesAndBalances();
+    } catch (err) {
+        alert(err.response?.data?.detail || 'Помилка');
+    }
 }
 
+const showLeaveModal = ref(false);
+
 const leaveRoom = () => {
+    showLeaveModal.value = true;
+}
+
+const confirmLeave = () => {
     localStorage.removeItem('active_room_id');
     router.push('/lobby');
 };
@@ -284,7 +296,7 @@ function goToProfile() {
                             <div class="avatar-circle me-3"><i class="fa-solid fa-user text-white"></i></div>
                             <span class="participant-name flex-grow-1 fw-bold">{{ member.name }}</span>
                             <span v-if="member.id === room.creator_id" class="badge host-badge">хост</span>
-                            <span v-if="member.id === currentUserId" class="badge you-badge">Ви</span>
+                            <span v-if="member.id === currentUserId" class="badge you-badge ms-2">Ви</span>
                         </div>
                     </div>
 
@@ -452,7 +464,7 @@ function goToProfile() {
                     </div>
                 </div>
 
-                <button v-if="isHost && !isFinished && activeTab !== 'map'" @click="finishRoom" class="btn brown-btn w-100 mt-4 mb-4">
+                <button v-if="isHost && !isFinished && activeTab !== 'map'" @click="promptFinishRoom" class="btn brown-btn w-100 mt-4 mb-4">
                     Завершити прогулянку
                 </button>
                 <div v-if="isFinished && activeTab !== 'map'" class="text-center text-muted py-3 mb-4">
@@ -473,6 +485,39 @@ function goToProfile() {
                 <i class="fa-solid fa-wallet"></i>
             </div>
         </nav>
+
+        <div v-if="showLeaveModal" class="custom-modal-overlay d-flex align-items-center justify-content-center z-3">
+            <div class="glass-box modal-card p-4 text-center mx-3 fade-in">
+                <div class="warning-icon-wrapper mx-auto mb-3">
+                    <i class="fa-solid fa-person-walking-arrow-right text-danger fs-1"></i>
+                </div>
+                <h4 class="fw-bold mb-2" style="color: #3b1c1c;">Вийти з кімнати?</h4>
+                <p class="text-muted mb-4 small">
+                    <span v-if="isHost">Ти зможеш повернутися сюди в будь-який момент, щоб фінально завершити прогулянку.</span>
+                    <span v-else>Ти зможеш повернутися сюди в будь-який момент, поки хост не завершить прогулянку.</span>
+                </p>
+                <div class="d-flex gap-3">
+                    <button class="btn create-btn flex-fill" @click="showLeaveModal = false">Скасувати</button>
+                    <button class="btn btn-danger flex-fill fw-bold" style="border-radius: 12px;" @click="confirmLeave">Вийти</button>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="showFinishModal" class="custom-modal-overlay d-flex align-items-center justify-content-center z-3">
+            <div class="glass-box modal-card p-4 text-center mx-3 fade-in">
+                <div class="warning-icon-wrapper mx-auto mb-3">
+                    <i class="fa-solid fa-flag-checkered text-danger fs-1"></i>
+                </div>
+                <h4 class="fw-bold mb-2" style="color: #3b1c1c;">Завершити назавжди?</h4>
+                <p class="text-muted mb-4 small">
+                    Це дія для всіх учасників. Додавати нові витрати буде неможливо.
+                </p>
+                <div class="d-flex gap-3">
+                    <button class="btn create-btn flex-fill" @click="showFinishModal = false">Скасувати</button>
+                    <button class="btn btn-danger flex-fill fw-bold" style="border-radius: 12px;" @click="confirmFinishRoom">Завершити</button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -819,5 +864,57 @@ function goToProfile() {
 
 .brown-btn:hover {
     background-color: #4a3c3c;
+}
+
+.custom-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(98, 80, 80, 0.4);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 1050;
+}
+
+.modal-card {
+    max-width: 340px;
+    width: 100%;
+    border-radius: 24px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+}
+
+.warning-icon-wrapper {
+    width: 80px;
+    height: 80px;
+    background-color: rgba(217, 48, 37, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fade-in {
+    animation: fadeInModal 0.2s ease-out forwards;
+}
+
+@keyframes fadeInModal {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.create-btn {
+    background-color: rgba(255, 255, 255, 0.8);
+    color: #625050;
+    border: 1px solid rgba(98, 80, 80, 0.4);
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.create-btn:hover {
+    background-color: #ffffff;
+    border-color: #625050;
 }
 </style>
