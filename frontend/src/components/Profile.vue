@@ -27,6 +27,7 @@ const finishedRooms = computed(() => myRooms.value.filter((r) => r.status === 'f
 const recentRooms = computed(() => myRooms.value.slice(0, 5));
 const finishedRoomList = computed(() => myRooms.value.filter((r) => r.status === 'finished'));
 const showHistory = ref(false);
+const showLogoutModal = ref(false);
 
 onMounted(async () => {
   try {
@@ -51,7 +52,7 @@ function formatDateShort(dateStr) {
   return new Date(dateStr).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
 }
 
-function logout() {
+function confirmLogout() {
   authStore.logout();
   localStorage.removeItem('active_room_id');
   router.push('/');
@@ -160,10 +161,21 @@ function logout() {
           </div>
         </div>
 
-        <button @click="logout" class="btn w-100 logout-bottom-btn mb-4">
-          <i class="fa-solid fa-right-from-bracket me-2"></i>
-          Вийти з акаунту
-        </button>
+        <div v-if="showLogoutModal" class="custom-modal-overlay d-flex align-items-center justify-content-center z-3">
+          <div class="glass-box modal-card p-4 text-center mx-3 fade-in">
+            <div class="warning-icon-wrapper mx-auto mb-3">
+              <i class="fa-solid fa-right-from-bracket text-danger fs-1"></i>
+            </div>
+            <h4 class="fw-bold mb-2" style="color: #3b1c1c;">Вийти з акаунту?</h4>
+            <p class="text-muted mb-4 small">
+              Тобі доведеться знову вводити логін та пароль при наступному вході.
+            </p>
+            <div class="d-flex gap-3">
+              <button class="btn create-btn flex-fill" @click="showLogoutModal = false">Скасувати</button>
+              <button class="btn btn-danger flex-fill fw-bold" style="border-radius: 12px;" @click="confirmLogout">Вийти</button>
+            </div>
+          </div>
+        </div>
 
       </div>
     </div>
@@ -361,5 +373,57 @@ function logout() {
 .logout-bottom-btn:hover {
   background: rgba(192, 57, 43, 0.08);
   border-color: rgba(192, 57, 43, 0.5);
+}
+
+.custom-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(98, 80, 80, 0.8);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 1050;
+}
+
+.modal-card {
+  max-width: 340px;
+  width: 100%;
+  border-radius: 24px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+}
+
+.warning-icon-wrapper {
+  width: 64px;
+  height: 64px;
+  background-color: rgba(217, 48, 37, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fade-in {
+  animation: fadeInModal 0.2s ease-out forwards;
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.create-btn {
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #625050;
+  border: 1px solid rgba(98, 80, 80, 0.4);
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.create-btn:hover {
+  background-color: #ffffff;
+  border-color: #625050;
 }
 </style>
