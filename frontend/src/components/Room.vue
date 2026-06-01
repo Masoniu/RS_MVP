@@ -872,7 +872,7 @@ function goToProfile() {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(98, 80, 80, 0.4);
+    background: rgba(98, 80, 80, 0.8);
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
     z-index: 1050;
