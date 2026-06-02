@@ -51,11 +51,11 @@ api.interceptors.response.use(
         return Promise.reject(error)
       }
 
-      try {
-        const { data } = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/auth/refresh`,
-          { refresh_token: refreshToken },
-        )
+       try {
+         const { data } = await axios.post(
+           `${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/auth/refresh`,
+           { refresh_token: refreshToken },
+         )
         localStorage.setItem('access_token', data.access_token)
         localStorage.setItem('refresh_token', data.refresh_token)
         api.defaults.headers.common.Authorization = `Bearer ${data.access_token}`

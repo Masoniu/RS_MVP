@@ -80,7 +80,13 @@ def refresh_access_token(body: TokenRefreshRequest, db: Session = Depends(get_db
     user = db.query(models.User).filter(models.User.id == int(user_id)).first()
     if user is None:
         raise credentials_exception
-    new_access_token = create_access_token(data={"sub": str(user.id)})
+    
+    token_data = {
+        "sub": str(user.id),
+        "name": user.name,
+        "email": user.email
+    }
+    new_access_token = create_access_token(data=token_data)
     new_refresh_token = create_refresh_token(data={"sub": str(user.id)})
 
     return {
