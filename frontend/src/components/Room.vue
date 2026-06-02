@@ -168,6 +168,52 @@ async function generateRoute() {
     }
 }
 
+function drawMap() {
+    nextTick(() => {
+        const mapContainer = document.getElementById('route-map-container');
+        if (!mapContainer) {
+            console.error("Помилка: Контейнер мапи не знайдено в DOM.");
+            return;
+        }
+        const oldMap = window.L.DomUtil.get('route-map-container');
+        if (oldMap != null) {
+            oldMap._leaflet_id = null;
+            mapContainer.innerHTML = '';
+        }
+
+        const locs = selectedLocations.value;
+        if (locs.length < 3 || !window.L) {
+            console.error("Помилка: Немає 3 локацій або Leaflet не завантажився.");
+            return;
+        }
+        const map = window.L.map('route-map-container').setView([locs[0].lat, locs[0].lon], 14);
+
+        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        window.L.Routing.control({
+            waypoints: [
+                window.L.latLng(locs[0].lat, locs[0].lon),
+                window.L.latLng(locs[1].lat, locs[1].lon),
+                window.L.latLng(locs[2].lat, locs[2].lon)
+            ],
+            router: window.L.Routing.osrmv1({
+                serviceUrl: 'https://router.project-osrm.org/route/v1',
+                profile: 'foot'
+            }),
+            lineOptions: { styles: [{ color: '#292CA8', opacity: 0.8, weight: 6 }] },
+            addWaypoints: false,
+            routeWhileDragging: false,
+            show: false
+        }).addTo(map);
+
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 300);
+    });
+}
+
 async function onLocationSelected(place) {
     selectedLocations.value.push(place);
     remainingBudget.value -= place.price;
@@ -187,6 +233,8 @@ async function onLocationSelected(place) {
         }
     }
 }
+
+
 
 const totalExpenses = computed(() =>
   expenses.value.reduce((sum, e) => sum + e.amount, 0)
