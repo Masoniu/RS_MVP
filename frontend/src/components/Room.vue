@@ -52,7 +52,30 @@ const newExpense = ref({ description: '', amount: '', payerId: '', splitBetween:
 const expenseError = ref('');
 const expenseSubmitting = ref(false);
 
-const routeData = ref(null);
+const deletingExpenseId = ref(null);
+const showDeleteModal = ref(false);
+const expenseToDelete = ref(null);
+
+function promptDeleteExpense(exp) {
+    expenseToDelete.value = exp;
+    showDeleteModal.value = true;
+}
+
+async function confirmDeleteExpense() {
+    if (!expenseToDelete.value) return;
+    deletingExpenseId.value = expenseToDelete.value.id;
+    showDeleteModal.value = false;
+    try {
+        await expensesApi.deleteExpense(expenseToDelete.value.id);
+        await loadExpensesAndBalances();
+    } catch (err) {
+        alert(err.response?.data?.detail || 'Помилка при видаленні');
+    } finally {
+        deletingExpenseId.value = null;
+        expenseToDelete.value = null;
+    }
+}
+
 const routeLoading = ref(false);
 const routeError = ref('');
 const isSwiping = ref(false);
@@ -233,8 +256,6 @@ async function onLocationSelected(place) {
         }
     }
 }
-
-
 
 const totalExpenses = computed(() =>
   expenses.value.reduce((sum, e) => sum + e.amount, 0)
@@ -450,13 +471,25 @@ function goToProfile() {
                                     class="glass-box participant-card d-flex align-items-center mb-2 px-3 py-2"
                                 >
                                     <div class="avatar-circle me-3"><i class="fa-solid fa-receipt text-white"></i></div>
-                                    <div class="flex-grow-1">
+                                    <div class="flex-grow-1 min-w-0">
                                         <div class="fw-bold item-name">{{ exp.description }}</div>
                                         <div class="item-details">
                                             Платив: {{ getMemberName(exp.payer_id) }} · ділять: {{ exp.splits.length }} люд.
                                         </div>
                                     </div>
-                                    <span class="fw-bold item-amount">{{ exp.amount.toFixed(0) }} грн</span>
+                                    <div class="d-flex flex-column align-items-end flex-shrink-0 ms-2 gap-1">
+                                        <span class="fw-bold item-amount">{{ exp.amount.toFixed(0) }} грн</span>
+                                        <button
+                                            v-if="!isFinished"
+                                            class="btn delete-btn"
+                                            :disabled="deletingExpenseId === exp.id"
+                                            @click="promptDeleteExpense(exp)"
+                                            title="Видалити витрату"
+                                        >
+                                            <span v-if="deletingExpenseId === exp.id" class="spinner-border spinner-border-sm"></span>
+                                            <i v-else class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div v-else-if="!expensesLoading" class="text-center text-muted py-3">Поки що немає витрат</div>
@@ -623,6 +656,25 @@ function goToProfile() {
                 </div>
             </div>
         </div>
+
+        <div v-if="showDeleteModal" class="custom-modal-overlay d-flex align-items-center justify-content-center z-3">
+            <div class="glass-box modal-card p-4 text-center mx-3 fade-in">
+                <div class="warning-icon-wrapper mx-auto mb-3">
+                    <i class="fa-solid fa-trash-can text-danger fs-1"></i>
+                </div>
+                <h4 class="fw-bold mb-2" style="color: #3b1c1c;">Видалити витрату?</h4>
+                <p class="text-muted mb-1 small">
+                    <strong>{{ expenseToDelete?.description }}</strong>
+                </p>
+                <p class="text-muted mb-4 small">
+                    {{ expenseToDelete?.amount?.toFixed(0) }} грн · платив {{ getMemberName(expenseToDelete?.payer_id) }}
+                </p>
+                <div class="d-flex gap-3">
+                    <button class="btn create-btn flex-fill" @click="showDeleteModal = false; expenseToDelete = null">Скасувати</button>
+                    <button class="btn btn-danger flex-fill fw-bold" style="border-radius: 12px;" @click="confirmDeleteExpense">Видалити</button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -751,6 +803,43 @@ function goToProfile() {
 .participant-card {
     height: 65px;
     transition: transform 0.2s ease;
+}
+
+.expense-card {
+    min-height: 65px;
+    height: auto;
+    align-items: flex-start !important;
+}
+
+.desc-counter {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    color: #625050;
+    opacity: 0.5;
+    pointer-events: none;
+}
+.counter-warn { color: #d93025 !important; opacity: 1 !important; font-weight: 700; }
+
+.delete-btn {
+    background: transparent;
+    border: none;
+    color: #c0392b;
+    opacity: 0.5;
+    padding: 2px 4px;
+    font-size: 13px;
+    line-height: 1;
+    border-radius: 6px;
+    transition: opacity 0.2s, background 0.2s;
+}
+.delete-btn:hover:not(:disabled) { opacity: 1; background: rgba(192, 57, 43, 0.08); }
+.delete-btn:disabled { opacity: 0.3; }
+
+.error-glow {
+    border-color: #e05858 !important;
+    box-shadow: 0 0 0 2px rgba(224, 88, 88, 0.2) !important;
 }
 
 .desktop-nav{
@@ -938,6 +1027,16 @@ function goToProfile() {
 
 .text-success {
     color: #188038 !important;
+}
+
+.pretty-input {
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(98, 80, 80, 0.3);
+    border-radius: 12px; height: 48px;
+}
+.pretty-input:focus {
+    background-color: #ffffff; border-color: #292CA8;
+    box-shadow: 0 0 0 2px rgba(41, 44, 165, 0.2);
 }
 
 .custom-select {

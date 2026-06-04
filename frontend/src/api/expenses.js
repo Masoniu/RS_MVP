@@ -14,4 +14,8 @@ export const expensesApi = {
       split_between: splitBetween,
     })
   },
+
+ deleteExpense(id) {
+    return api.delete(`/expenses/${id}`)
+  },
 }
