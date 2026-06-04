@@ -281,11 +281,17 @@ function openExpenseForm() {
   showExpenseForm.value = true;
 }
 
+const MAX_DESC = 30;
+const descCharsLeft = computed(() => MAX_DESC - (newExpense.value.description?.length || 0));
+
 async function submitExpense() {
   expenseError.value = '';
   if (!newExpense.value.description || !newExpense.value.amount) {
     expenseError.value = 'Заповніть опис та суму';
     return;
+  }
+  if (newExpense.value.description.length > MAX_DESC) {
+        expenseError.value = `Опис не може перевищувати ${MAX_DESC} символів`; return;
   }
   if (!newExpense.value.splitBetween.length) {
     expenseError.value = 'Оберіть хоч одного учасника';
@@ -434,7 +440,20 @@ function goToProfile() {
                             <div v-if="showExpenseForm" class="glass-box p-4 mb-4">
                                 <h6 class="fw-bold mb-3" style="color: #3b1c1c;">Нова витрата</h6>
 
-                                <input v-model="newExpense.description" type="text" class="form-control pretty-input mb-2" placeholder="Опис (наприклад: Квитки)">
+                                <div class="mb-2 position-relative">
+                                    <input
+                                        v-model="newExpense.description"
+                                        type="text"
+                                        :maxlength="MAX_DESC"
+                                        class="form-control pretty-input"
+                                        :class="{ 'error-glow': newExpense.description.length >= MAX_DESC }"
+                                        placeholder="Опис (макс. 30 символів)"
+                                    >
+                                    <span class="desc-counter" :class="{ 'counter-warn': descCharsLeft <= 5 }">
+                                        {{ descCharsLeft }}
+                                    </span>
+                                </div>                                
+                                
                                 <input v-model="newExpense.amount" type="number" min="0" class="form-control pretty-input mb-3" placeholder="Сума (грн)">
 
                                 <label class="form-label text-muted small mb-1">Хто платив</label>
