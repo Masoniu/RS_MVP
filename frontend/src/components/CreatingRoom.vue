@@ -27,6 +27,10 @@ async function handleCreate() {
     isLoading.value = false;
   }
 }
+
+function goToProfile() {
+  router.push('/profile');
+}
 </script>
 
 <template>
@@ -41,8 +45,7 @@ async function handleCreate() {
         <h2 class="fw-bold mb-0 mini-title">RouteSplitter</h2>
       </div>
       <div class="d-flex align-items-center gap-3">
-        <button @click="logout" class="btn btn-sm logout-btn">Вийти</button>
-          <div class="avatar-circle">
+          <div class="avatar-circle" @click="goToProfile" title="Профіль">
             <i class="fa-solid fa-user text-white"></i>
           </div>
       </div>
@@ -168,14 +171,6 @@ async function handleCreate() {
   font-size: 20px;
   color: #ffffff;
 }
-
-.logout-btn {
-    color: rgba(255,255,255,0.8);
-    border: 1px solid rgba(255,255,255,0.3);
-    border-radius: 10px;
-    font-size: 13px;
-}
-.logout-btn:hover { color: #fff; border-color: #fff; }
 
 .avatar-circle {
     width: 40px;

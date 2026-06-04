@@ -413,7 +413,7 @@ function goToProfile() {
                             <div v-if="showExpenseForm" class="glass-box p-4 mb-4">
                                 <h6 class="fw-bold mb-3" style="color: #3b1c1c;">Нова витрата</h6>
 
-                                <input v-model="newExpense.description" type="text" class="form-control pretty-input mb-2" placeholder="Опис (напр. Квитки)">
+                                <input v-model="newExpense.description" type="text" class="form-control pretty-input mb-2" placeholder="Опис (наприклад: Квитки)">
                                 <input v-model="newExpense.amount" type="number" min="0" class="form-control pretty-input mb-3" placeholder="Сума (грн)">
 
                                 <label class="form-label text-muted small mb-1">Хто платив</label>
@@ -453,7 +453,7 @@ function goToProfile() {
                                     <div class="flex-grow-1">
                                         <div class="fw-bold item-name">{{ exp.description }}</div>
                                         <div class="item-details">
-                                            Платив: {{ getMemberName(exp.payer_id) }} · ділять: {{ exp.splits.length }} чол.
+                                            Платив: {{ getMemberName(exp.payer_id) }} · ділять: {{ exp.splits.length }} люд.
                                         </div>
                                     </div>
                                     <span class="fw-bold item-amount">{{ exp.amount.toFixed(0) }} грн</span>
@@ -648,7 +648,7 @@ function goToProfile() {
 }
 
 .room-header {
-    background-color: #292CA8; 
+    background-color: #625050;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     color: #ffffff;
     position: fixed;

@@ -61,7 +61,7 @@ function confirmLogout() {
 </script>
 
 <template>
-  <div class="lobby-page d-flex flex-column min-vh-100 position-relative">
+  <div class="profile-page d-flex flex-column min-vh-100 position-relative">
 
     <div class="map-pillar pillar-left d-none d-lg-block"></div>
     <div class="map-pillar pillar-right d-none d-lg-block"></div>
@@ -188,7 +188,7 @@ function confirmLogout() {
 </template>
 
 <style scoped>
-.lobby-page {
+.profile-page {
   background-color: var(--bg-main);
   background-image: 
     radial-gradient(circle at 80% 20%, rgba(100, 109, 210, 0.3) 0%, rgba(98, 80, 80, 0) 40%),
@@ -211,6 +211,16 @@ function confirmLogout() {
   background-position: left center;
   -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
   mask-image: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+}
+
+.profile-header {
+    background-color: #625050;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    height: 70px;
 }
 
 .pillar-right {
