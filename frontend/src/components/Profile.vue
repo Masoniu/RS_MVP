@@ -161,6 +161,11 @@ function confirmLogout() {
           </div>
         </div>
 
+        <button @click="showLogoutModal = true" class="btn w-100 logout-bottom-btn mb-4">
+          <i class="fa-solid fa-right-from-bracket me-2"></i>
+          Вийти з акаунту
+        </button>
+
         <div v-if="showLogoutModal" class="custom-modal-overlay d-flex align-items-center justify-content-center z-3">
           <div class="glass-box modal-card p-4 text-center mx-3 fade-in">
             <div class="warning-icon-wrapper mx-auto mb-3">
