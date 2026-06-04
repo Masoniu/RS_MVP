@@ -84,18 +84,29 @@ const startSwipe = (event) => {
     isSwiping.value = true;
 };
 
-const budgetOptions = [
-  { label: 'До 500 грн', value: 500 },
-  { label: 'До 1000 грн', value: 1000 },
-  { label: 'До 10 000 грн', value: 10000 },
-];
-const radiusOptions = [
-  { label: 'Пішки (2 км)', value: 2 },
-  { label: 'Середній (5 км)', value: 5 },
-  { label: 'На таксі (20 км)', value: 20 },
-];
-const selectedBudget = ref(500);
-const selectedRadius = ref(2);
+const budgetInput = ref('500');
+const radiusInput = ref('2');
+const budgetError = ref('');
+const radiusError = ref('');
+
+function validateBudget() {
+    const val = parseFloat(budgetInput.value);
+    if (!budgetInput.value || isNaN(val)) { budgetError.value = 'Введіть суму'; return false; }
+    if (val < 50)   { budgetError.value = 'Мінімум 50 грн'; return false; }
+    if (val > 50000) { budgetError.value = 'Максимум 50 000 грн'; return false; }
+    budgetError.value = '';
+    return true;
+}
+
+function validateRadius() {
+    const val = parseFloat(radiusInput.value);
+    if (!radiusInput.value || isNaN(val)) { radiusError.value = 'Введіть радіус'; return false; }
+    if (val < 0.5)  { radiusError.value = 'Мінімум 0.5 км'; return false; }
+    if (val > 50)   { radiusError.value = 'Максимум 50 км'; return false; }
+    radiusError.value = '';
+    return true;
+}
+
 const userLat = ref(null);
 const userLon = ref(null);
 
@@ -171,16 +182,17 @@ async function loadExpensesAndBalances() {
 }
 
 async function generateRoute() {
+    if (!validateBudget() | !validateRadius()) return;
     routeLoading.value = true;
     routeError.value = '';
     try {
         const { data } = await roomsApi.getRouteCandidates(roomId.value, {
             lat: userLat.value,
             lon: userLon.value,
-            radiusKm: selectedRadius.value
+            radiusKm: parseFloat(radiusInput.value)
         });
         candidates.value = data;
-        remainingBudget.value = selectedBudget.value;
+        remainingBudget.value = parseFloat(budgetInput.value);
         currentStep.value = 0;
         selectedLocations.value = [];
         isSwiping.value = true;
@@ -246,8 +258,8 @@ async function onLocationSelected(place) {
         isSwiping.value = false;
         try {
             await roomsApi.saveRoute(roomId.value, {
-                budget: selectedBudget.value,
-                radius_km: selectedRadius.value,
+                budget: parseFloat(budgetInput.value),
+                radius_km: parseFloat(radiusInput.value),
                 locations: selectedLocations.value
             });
             drawMap();
@@ -583,18 +595,38 @@ function goToProfile() {
                             <div v-if="isHost && !isFinished" class="glass-box p-4 mb-4">
                                 <p class="fw-bold mb-3" style="color: #3b1c1c;">Параметри прогулянки</p>
 
-                                <div class="mb-3">
-                                    <label class="form-label text-muted small mb-1">Бюджет</label>
-                                    <select v-model="selectedBudget" class="form-select custom-select">
-                                        <option v-for="opt in budgetOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                                    </select>
+                                <div class="mb-1">
+                                    <label class="form-label text-muted small mb-1">Бюджет (грн)</label>
+                                    <input
+                                        v-model="budgetInput"
+                                        type="number"
+                                        min="50"
+                                        max="50000"
+                                        class="form-control pretty-input"
+                                        :class="{ 'error-glow': budgetError }"
+                                        placeholder="напр. 800"
+                                        @blur="validateBudget"                                            @input="budgetError = ''"
+                                    >
+                                    <p v-if="budgetError" class="field-error mt-1">{{ budgetError }}</p>
+                                    <p v-else class="field-hint mt-1">від 50 до 50 000 грн</p>
                                 </div>
 
                                 <div class="mb-4">
-                                    <label class="form-label text-muted small mb-1">Радіус пошуку</label>
-                                    <select v-model="selectedRadius" class="form-select custom-select">
-                                        <option v-for="opt in radiusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                                    </select>
+                                    <label class="form-label text-muted small mb-1">Радіус пошуку (км)</label>
+                                    <input
+                                        v-model="radiusInput"
+                                        type="number"
+                                        min="0.5"
+                                        max="50"
+                                        step="0.5"
+                                        class="form-control pretty-input"
+                                        :class="{ 'error-glow': radiusError }"
+                                        placeholder="напр. 3"
+                                        @blur="validateRadius"
+                                        @input="radiusError = ''"
+                                    >
+                                    <p v-if="radiusError" class="field-error mt-1">{{ radiusError }}</p>
+                                    <p v-else class="field-hint mt-1">від 0.5 до 50 км</p>
                                 </div>
 
                                 <p v-if="!userLat" class="text-warning small mb-2">
@@ -855,6 +887,9 @@ function goToProfile() {
 }
 .delete-btn:hover:not(:disabled) { opacity: 1; background: rgba(192, 57, 43, 0.08); }
 .delete-btn:disabled { opacity: 0.3; }
+
+.field-error { font-size: 12px; color: #d93025; margin-bottom: 8px; }
+.field-hint  { font-size: 12px; color: #625050; opacity: 0.6; margin-bottom: 8px; }
 
 .error-glow {
     border-color: #e05858 !important;
