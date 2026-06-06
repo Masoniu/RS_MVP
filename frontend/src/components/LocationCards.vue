@@ -1,10 +1,12 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, nextTick, onBeforeUnmount } from 'vue';
 
 const props = defineProps({
     locations: { type: Array, required: true },
     categoryTitle: { type: String, default: 'Локація' },
-    remainingBudget: { type: Number, required: true }
+    remainingBudget: { type: Number, required: true },
+    userLocation: { type: Object, default: null },
+    previousLocations: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits(['choiceMade', 'empty']);
@@ -15,32 +17,84 @@ const isDragging = ref(false);
 const startX = ref(0);
 const offsetX = ref(0);
 
+let miniMapInstance = null;
+
+const drawMiniMap = () => {
+    if (places.value.length === 0 || typeof window === 'undefined' || !window.L) return;
+    const place = places.value[0];
+
+    nextTick(() => {
+        const safeId = `mini-map-${place.osm_id.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+        const mapEl = document.getElementById(safeId);
+
+        if (!mapEl) return;
+
+        if (miniMapInstance) {
+            miniMapInstance.remove();
+            miniMapInstance = null;
+        }
+        miniMapInstance = window.L.map(mapEl, {
+            zoomControl: false, dragging: false, scrollWheelZoom: false,
+            doubleClickZoom: false, touchZoom: false
+        }).setView([place.lat, place.lon], 14);
+
+        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMapInstance);
+
+        const waypoints = [];
+
+        if (props.userLocation && props.userLocation.lat) {
+            waypoints.push(window.L.latLng(props.userLocation.lat, props.userLocation.lon));
+        }
+
+        props.previousLocations.forEach(loc => {
+            waypoints.push(window.L.latLng(loc.lat, loc.lon));
+        });
+
+        waypoints.push(window.L.latLng(place.lat, place.lon));
+
+        if (waypoints.length > 1) {
+            window.L.Routing.control({
+                waypoints: waypoints,
+                router: window.L.Routing.osrmv1({ profile: 'foot' }),
+                lineOptions: { styles: [{ color: '#292CA8', opacity: 0.8, weight: 5 }] },
+                addWaypoints: false, routeWhileDragging: false, show: false,
+                fitSelectedRoutes: true
+            }).addTo(miniMapInstance);
+        } else {
+            window.L.marker([place.lat, place.lon]).addTo(miniMapInstance);
+        }
+    });
+};
+
 watch(() => props.locations, (newVal) => {
     places.value = [...newVal];
 }, { immediate: true });
 
+watch(() => places.value[0], () => {
+    setTimeout(drawMiniMap, 150);
+}, { immediate: true });
+
+onBeforeUnmount(() => {
+    if (miniMapInstance) miniMapInstance.remove();
+});
+
 const handleChoice = (isLiked) => {
     if (places.value.length === 0 || flyDirection.value) return;
-
     const currentPlace = places.value[0];
 
     if (isLiked && currentPlace.price > props.remainingBudget) {
-        alert(`Недостатньо бюджету! Це коштує ${currentPlace.price} грн, а у вас залишилось ${props.remainingBudget} грн.`);
+        alert(`Недостатньо бюджету! Це коштує ${currentPlace.price} грн.`);
         return;
     }
 
     flyDirection.value = isLiked ? 'right' : 'left';
 
     setTimeout(() => {
-        if (isLiked) {
-            emit('choiceMade', currentPlace);
-        } else {
+        if (isLiked) { emit('choiceMade', currentPlace); }
+        else {
             places.value.shift();
-            if (places.value.length === 0) {
-                emit('empty');
-            }
+            if (places.value.length === 0) emit('empty');
         }
-
         flyDirection.value = null;
         offsetX.value = 0;
     }, 300);
@@ -61,15 +115,10 @@ const onDrag = (event) => {
 const endDrag = () => {
     if (!isDragging.value) return;
     isDragging.value = false;
-
     const threshold = 100;
-    if (offsetX.value > threshold) {
-        handleChoice(true);
-    } else if (offsetX.value < -threshold) {
-        handleChoice(false);
-    } else {
-        requestAnimationFrame(() => offsetX.value = 0);
-    }
+    if (offsetX.value > threshold) handleChoice(true);
+    else if (offsetX.value < -threshold) handleChoice(false);
+    else requestAnimationFrame(() => offsetX.value = 0);
 };
 </script>
 
