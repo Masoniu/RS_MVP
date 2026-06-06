@@ -5,7 +5,6 @@ import { useAuthStore } from '../stores/auth';
 import { roomsApi } from '../api/rooms';
 import { expensesApi } from '../api/expenses';
 import LocationCards from '../components/LocationCards.vue';
-import { nextTick } from 'vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -198,7 +197,7 @@ async function loadExpensesAndBalances() {
 }
 
 async function generateRoute() {
-    if (!validateBudget() | !validateRadius()) return;
+    if (!validateBudget() || !validateRadius()) return;
     routeLoading.value = true;
     routeError.value = '';
     try {
@@ -592,42 +591,84 @@ function goToProfile() {
                     <div class="map-placeholder d-none d-lg-flex flex-column glass-box p-0 overflow-hidden w-100" style="flex: 1; min-height: 550px;">
                         <div id="route-map-container" class="w-100 h-100" style="min-height: 550px; z-index: 1;">
                             <div v-if="selectedLocations.length < 3" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(98, 80, 80, 0.05);">
-                            <i class="fa-solid fa-map-location-dot mb-3" style="font-size: 64px; color: #292CA8; opacity: 0.5;"></i>
-                            <h4 class="fw-bold" style="color: #625050;">Мапа маршруту</h4>
-                            <p class="text-muted small">Пройдіть процес вибору локацій!</p>
+                                <i class="fa-solid fa-map-location-dot mb-3" style="font-size: 64px; color: #292CA8; opacity: 0.5;"></i>
+                                <h4 class="fw-bold" style="color: #625050;">Мапа маршруту</h4>
+                                <p class="text-muted small">Пройдіть процес вибору локацій!</p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-    <div class="controls-column w-100 d-flex flex-column" style="max-width: 450px; margin: 0 auto;">
+                    <div class="controls-column w-100 d-flex flex-column" style="max-width: 450px; margin: 0 auto;">
 
-    <div v-if="isSwiping">
-        <div class="text-center mb-2">
-            <h5 class="fw-bold text-primary">{{ currentCategoryTitle }}</h5>
-            <span class="badge bg-success">Залишок: {{ remainingBudget }} грн</span>
-        </div>
-        <LocationCards
-            :locations="currentCategoryLocations"
-            :remainingBudget="remainingBudget"
-            :userLocation="{ lat: userLat, lon: userLon }"
-            :previousLocations="selectedLocations"
-            @choiceMade="onLocationSelected"
-            @empty="routeError = 'Локації цієї категорії закінчились :('"
-        />
-    </div>
+                        <div v-if="isSwiping">
+                            <div class="text-center mb-2">
+                                <h5 class="fw-bold text-primary">{{ currentCategoryTitle }}</h5>
+                                <span class="badge bg-success">Залишок: {{ remainingBudget }} грн</span>
+                            </div>
+                            <LocationCards
+                                :locations="currentCategoryLocations"
+                                :remainingBudget="remainingBudget"
+                                :userLocation="{ lat: userLat, lon: userLon }"
+                                :previousLocations="selectedLocations"
+                                @choiceMade="onLocationSelected"
+                                @empty="routeError = 'Локації цієї категорії закінчились :('"
+                            />
+                        </div>
 
-    <div v-else-if="selectedLocations.length >= 3">
-        <div class="glass-box p-4 text-center mt-2">
-            <div class="mb-3">
-                <i class="fa-solid fa-map-location-dot text-success" style="font-size: 42px;"></i>
-            </div>
-            <h5 class="fw-bold text-dark mb-2">Маршрут прокладено!</h5>
-            <p class="text-muted small mb-4">Всі учасники кімнати бачать цей шлях.</p>
+                        <div v-else-if="selectedLocations.length >= 3">
+                            <div class="glass-box p-4 text-center mt-2">
+                                <div class="mb-3">
+                                    <i class="fa-solid fa-map-location-dot text-success" style="font-size: 42px;"></i>
+                                </div>
+                                <h5 class="fw-bold text-dark mb-2">Маршрут прокладено!</h5>
+                                <p class="text-muted small mb-4">Всі учасники кімнати бачать цей шлях.</p>
 
-            <button v-if="isHost && !isFinished" @click="resetRoute" class="btn create-btn w-100">
-                <i class="fa-solid fa-rotate-right me-2"></i>Перебудувати маршрут
-            </button>
-        </div>
+                                <button v-if="isHost && !isFinished" @click="resetRoute" class="btn create-btn w-100">
+                                    <i class="fa-solid fa-rotate-right me-2"></i>Перебудувати маршрут
+                                </button>
+                            </div>
+                        </div>
+
+                        <div v-else>
+                            <div v-if="isHost && !isFinished" class="glass-box p-4 mb-4 mt-2">
+                                <p class="fw-bold mb-3" style="color: #3b1c1c;">Параметри прогулянки</p>
+
+                                <div class="mb-1">
+                                    <label class="form-label text-muted small mb-1">Бюджет (грн)</label>
+                                    <input v-model="budgetInput" type="number" min="50" max="50000" class="form-control pretty-input" :class="{ 'error-glow': budgetError }" placeholder="напр. 800" @blur="validateBudget" @input="budgetError = ''">
+                                    <p v-if="budgetError" class="field-error mt-1">{{ budgetError }}</p>
+                                    <p v-else class="field-hint mt-1">від 50 до 50 000 грн</p>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label text-muted small mb-1">Радіус пошуку (км)</label>
+                                    <input v-model="radiusInput" type="number" min="0.5" max="50" step="0.5" class="form-control pretty-input" :class="{ 'error-glow': radiusError }" placeholder="напр. 3" @blur="validateRadius" @input="radiusError = ''">
+                                    <p v-if="radiusError" class="field-error mt-1">{{ radiusError }}</p>
+                                    <p v-else class="field-hint mt-1">від 0.5 до 50 км</p>
+                                </div>
+
+                                <p v-if="!userLat" class="text-warning small mb-2">
+                                    <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                                    Дозвольте доступ до геолокації в браузері, щоб знайти локації поряд
+                                </p>
+                                <p v-if="routeError" class="text-danger small mb-2">{{ routeError }}</p>
+
+                                <button class="btn brown-btn w-100" @click="generateRoute" :disabled="routeLoading || !userLat">
+                                    <span v-if="routeLoading" class="spinner-border spinner-border-sm me-2"></span>
+                                    Знайти локації
+                                </button>
+                            </div>
+
+                            <div v-else-if="!isHost" class="glass-box p-4 text-center mb-4 mt-2">
+                                <div class="mb-3">
+                                    <i class="fa-solid fa-compass fa-spin fs-1" style="color: #292CA8;"></i>
+                                </div>
+                                <h5 class="fw-bold" style="color: #3b1c1c;">Очікуємо на хоста</h5>
+                                <p class="text-muted mb-0" style="font-size: 14px;">Хост зараз налаштовує параметри та радіус нашої прогулянки. Зачекайте трохи...</p>
+                            </div>
+                        </div>
+
+                    </div>
     </div>
 
     <div v-else>
@@ -739,7 +780,6 @@ function goToProfile() {
                 <div v-if="isFinished && activeTab !== 'map'" class="text-center text-muted py-3 mb-4">
                     <i class="fa-solid fa-check-circle me-2 text-success"></i>Прогулянка завершена
                 </div>
-                </template>
             </div>
         </main>
 
