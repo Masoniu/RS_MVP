@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { roomsApi } from '../api/rooms';
@@ -112,6 +112,13 @@ const userLon = ref(null);
 
 //current tab in room page (map, participants, expenses) - for me to check
 const activeTab = ref('expenses');
+
+watch(activeTab, (newTab) => {
+    if (newTab === 'map' && selectedLocations.value.length >= 3 && !isSwiping.value) {
+        setTimeout(drawMap, 150);
+    }
+});
+
 //DO NOT TOUCH HEADER AND SCROLL, THESE ARE MINE >:)
 const showHeader = ref(true);
 let lastScrollPosition = 0;
@@ -153,6 +160,15 @@ async function loadRoom() {
     const { data } = await roomsApi.getRoom(roomId.value);
     room.value = data;
     members.value = data.members || [];
+
+    if (data.route && data.route.locations && data.route.locations.length > 0) {
+        selectedLocations.value = data.route.locations;
+        isSwiping.value = false;
+        if (activeTab.value === 'map') {
+            setTimeout(drawMap, 200);
+        }
+    }
+
     await loadExpensesAndBalances();
   } catch (err) {
     error.value = err.response?.data?.detail || 'Не вдалося завантажити кімнату';
@@ -227,16 +243,15 @@ function drawMap() {
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
+        const waypoints = [];
+        if (userLat.value && userLon.value) {
+            waypoints.push(window.L.latLng(userLat.value, userLon.value));
+        }
+        locs.forEach(l => waypoints.push(window.L.latLng(l.lat, l.lon)));
+
         window.L.Routing.control({
-            waypoints: [
-                window.L.latLng(locs[0].lat, locs[0].lon),
-                window.L.latLng(locs[1].lat, locs[1].lon),
-                window.L.latLng(locs[2].lat, locs[2].lon)
-            ],
-            router: window.L.Routing.osrmv1({
-                serviceUrl: 'https://router.project-osrm.org/route/v1',
-                profile: 'foot'
-            }),
+            waypoints: waypoints,
+            router: window.L.Routing.osrmv1({ profile: 'foot' }),
             lineOptions: { styles: [{ color: '#292CA8', opacity: 0.8, weight: 6 }] },
             addWaypoints: false,
             routeWhileDragging: false,
@@ -247,6 +262,14 @@ function drawMap() {
             map.invalidateSize();
         }, 300);
     });
+}
+
+function resetRoute() {
+    if (confirm('Ви впевнені, що хочете скинути поточний маршрут і створити новий?')) {
+        selectedLocations.value = [];
+        candidates.value = { parks: [], museums: [], cafes: [] };
+        isSwiping.value = false;
+    }
 }
 
 async function onLocationSelected(place) {
@@ -576,20 +599,77 @@ function goToProfile() {
                     </div>
                 </div>
 
-                    <div class="controls-column w-100 d-flex flex-column" style="max-width: 450px; margin: 0 auto;">
-                        
-                        <div v-if="isSwiping">
-                            <div class="text-center mb-2">
-                            <h5 class="fw-bold text-primary">{{ currentCategoryTitle }}</h5>
-                            <span class="badge bg-success">Залишок: {{ remainingBudget }} грн</span>
-                        </div>
-                         <LocationCards
-                         :locations="currentCategoryLocations"
-                         :remainingBudget="remainingBudget"
-                         @choiceMade="onLocationSelected"
-                         @empty="routeError = 'Локації цієї категорії закінчились :('"
-                        />
-                    </div>
+    <div class="controls-column w-100 d-flex flex-column" style="max-width: 450px; margin: 0 auto;">
+
+    <div v-if="isSwiping">
+        <div class="text-center mb-2">
+            <h5 class="fw-bold text-primary">{{ currentCategoryTitle }}</h5>
+            <span class="badge bg-success">Залишок: {{ remainingBudget }} грн</span>
+        </div>
+        <LocationCards
+            :locations="currentCategoryLocations"
+            :remainingBudget="remainingBudget"
+            :userLocation="{ lat: userLat, lon: userLon }"
+            :previousLocations="selectedLocations"
+            @choiceMade="onLocationSelected"
+            @empty="routeError = 'Локації цієї категорії закінчились :('"
+        />
+    </div>
+
+    <div v-else-if="selectedLocations.length >= 3">
+        <div class="glass-box p-4 text-center mt-2">
+            <div class="mb-3">
+                <i class="fa-solid fa-map-location-dot text-success" style="font-size: 42px;"></i>
+            </div>
+            <h5 class="fw-bold text-dark mb-2">Маршрут прокладено!</h5>
+            <p class="text-muted small mb-4">Всі учасники кімнати бачать цей шлях.</p>
+
+            <button v-if="isHost && !isFinished" @click="resetRoute" class="btn create-btn w-100">
+                <i class="fa-solid fa-rotate-right me-2"></i>Перебудувати маршрут
+            </button>
+        </div>
+    </div>
+
+    <div v-else>
+        <div v-if="isHost && !isFinished" class="glass-box p-4 mb-4 mt-2">
+            <p class="fw-bold mb-3" style="color: #3b1c1c;">Параметри прогулянки</p>
+
+            <div class="mb-1">
+                <label class="form-label text-muted small mb-1">Бюджет (грн)</label>
+                <input v-model="budgetInput" type="number" min="50" max="50000" class="form-control pretty-input" :class="{ 'error-glow': budgetError }" placeholder="напр. 800" @blur="validateBudget" @input="budgetError = ''">
+                <p v-if="budgetError" class="field-error mt-1">{{ budgetError }}</p>
+                <p v-else class="field-hint mt-1">від 50 до 50 000 грн</p>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label text-muted small mb-1">Радіус пошуку (км)</label>
+                <input v-model="radiusInput" type="number" min="0.5" max="50" step="0.5" class="form-control pretty-input" :class="{ 'error-glow': radiusError }" placeholder="напр. 3" @blur="validateRadius" @input="radiusError = ''">
+                <p v-if="radiusError" class="field-error mt-1">{{ radiusError }}</p>
+                <p v-else class="field-hint mt-1">від 0.5 до 50 км</p>
+            </div>
+
+            <p v-if="!userLat" class="text-warning small mb-2">
+                <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                Дозвольте доступ до геолокації в браузері, щоб знайти локації поряд
+            </p>
+            <p v-if="routeError" class="text-danger small mb-2">{{ routeError }}</p>
+
+            <button class="btn brown-btn w-100" @click="generateRoute" :disabled="routeLoading || !userLat">
+                <span v-if="routeLoading" class="spinner-border spinner-border-sm me-2"></span>
+                Знайти локації
+            </button>
+        </div>
+
+        <div v-else-if="!isHost" class="glass-box p-4 text-center mb-4 mt-2">
+            <div class="mb-3">
+                <i class="fa-solid fa-compass fa-spin fs-1" style="color: #292CA8;"></i>
+            </div>
+            <h5 class="fw-bold" style="color: #3b1c1c;">Очікуємо на хоста</h5>
+            <p class="text-muted mb-0" style="font-size: 14px;">Хост зараз налаштовує параметри та радіус нашої прогулянки. Зачекайте трохи...</p>
+        </div>
+    </div>
+
+</div>
 
                         <div v-else>
                             <div v-if="isHost && !isFinished" class="glass-box p-4 mb-4">
