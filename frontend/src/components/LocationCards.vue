@@ -151,8 +151,9 @@ const endDrag = () => {
                  @mouseleave="index === 0 && endDrag()"
                  @touchend="index === 0 && endDrag()">
                 
-                <div class="image-placeholder mb-3">
-                    <i class="fa-solid fa-map-location-dot text-muted fs-1"></i>
+                <div class="image-placeholder mb-3 overflow-hidden position-relative" style="padding: 0;">
+                    <div v-if="index === 0" :id="`mini-map-${place.osm_id.replace(/[^a-zA-Z0-9_-]/g, '-')}`" class="w-100 h-100"></div>
+                    <i v-else class="fa-solid fa-map-location-dot text-muted fs-1"></i>
                 </div>
                 
                 <div class="card-info">
