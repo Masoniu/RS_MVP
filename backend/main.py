@@ -1,7 +1,12 @@
 from fastapi import FastAPI
-from routers import auth, rooms, maps, expenses
-from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from routers import auth, rooms, maps, expenses
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 app = FastAPI(title="RouteSplitter API")
 
