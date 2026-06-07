@@ -176,6 +176,26 @@ async function loadRoom() {
   }
 }
 
+async function onExpandRadius() {
+    const current = parseFloat(radiusInput.value);
+    const newRadius = Math.min(current + 2, 50); // +2км, максимум 50
+    radiusInput.value = String(newRadius);
+    routeLoading.value = true;
+    routeError.value = '';
+    try {
+        const { data } = await roomsApi.getRouteCandidates(roomId.value, {
+            lat: userLat.value,
+            lon: userLon.value,
+            radiusKm: newRadius
+        });
+        candidates.value = data;
+    } catch (err) {
+        routeError.value = err.response?.data?.detail || 'Помилка при пошуку';
+    } finally {
+        routeLoading.value = false;
+    }
+}
+
 async function loadExpensesAndBalances() {
   expensesLoading.value = true;
   try {
@@ -555,11 +575,13 @@ function goToProfile() {
                                 </div>
                                 <LocationCards
                                     :locations="currentCategoryLocations"
+                                    :categoryTitle="currentCategoryTitle"
                                     :remainingBudget="remainingBudget"
                                     :userLocation="{ lat: userLat, lon: userLon }"
                                     :previousLocations="selectedLocations"
                                     @choiceMade="onLocationSelected"
-                                    @empty="routeError = 'Локації цієї категорії закінчились :('"
+                                    @empty="currentStep++"
+                                    @expandRadius="onExpandRadius"
                                 />
                             </div>
 

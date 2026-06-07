@@ -9,6 +9,9 @@ const props = defineProps({
     previousLocations: { type: Array, default: () => [] }
 });
 
+const emit = defineEmits(['choiceMade', 'empty', 'expandRadius']);
+const wasEmptyFromStart = computed(() => props.locations.length === 0);
+
 const emit = defineEmits(['choiceMade', 'empty']);
 
 const places = ref([]);
@@ -175,15 +178,23 @@ const endDrag = () => {
         </div>
 
         <div v-else class="text-center p-4 glass-box w-100" style="max-width: 400px;">
-            <div class="mb-3">
-                <i :class="isFinished ? 'fa-solid fa-check-circle text-success' : 'fa-solid fa-magnifying-glass-location text-muted'" 
-                   style="font-size: 48px; transition: all 0.3s ease;"></i>
-            </div>
-            <h3 class="fw-bold" style="color: #625050;">
-                {{ isFinished ? 'Вибір зроблено!' : 'Локації закінчилися!' }}
-            </h3>
-            <p class="text-muted mb-0">Очікуємо на результати збігів від інших учасників...</p>
-        </div>
+    <div class="mb-3">
+        <i :class="isFinished ? 'fa-solid fa-check-circle text-success' : 'fa-solid fa-magnifying-glass-location text-muted'"
+           style="font-size: 48px;"></i>
+    </div>
+    <h3 class="fw-bold" style="color: #625050;">
+        {{ isFinished ? 'Вибір зроблено!' : 'Локації закінчилися!' }}
+    </h3>
+    <template v-if="!isFinished && wasEmptyFromStart">
+        <p class="text-muted mb-3">У цьому радіусі немає локацій цієї категорії.</p>
+        <button @click="emit('expandRadius')" class="btn expand-btn">
+            <i class="fa-solid fa-expand me-2"></i>Збільшити радіус пошуку
+        </button>
+    </template>
+    <template v-else>
+        <p class="text-muted mb-0">Очікуємо на результати збігів від інших учасників...</p>
+    </template>
+</div>
 
         <div class="controls d-flex gap-4" style="margin-top: -15px; z-index: 10;" v-if="places.length > 0 && !isFinished">
             <button @click="handleChoice(false)" class="btn action-btn skip-btn">
@@ -305,4 +316,14 @@ const endDrag = () => {
 .card-info{
     transition: opacity 0.3s ease-in-out;
 }
+
+.expand-btn {
+    background-color: #292CA8;
+    color: white;
+    border-radius: 14px;
+    padding: 10px 20px;
+    font-weight: 600;
+    border: none;
+}
+.expand-btn:hover { background-color: #1e2180; }
 </style>
