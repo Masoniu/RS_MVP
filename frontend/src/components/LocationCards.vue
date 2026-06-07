@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, nextTick, onBeforeUnmount } from 'vue';
+import { ref, watch, nextTick, onBeforeUnmount, computed } from 'vue';
 
 const props = defineProps({
     locations: { type: Array, required: true },
@@ -11,8 +11,6 @@ const props = defineProps({
 
 const emit = defineEmits(['choiceMade', 'empty', 'expandRadius']);
 const wasEmptyFromStart = computed(() => props.locations.length === 0);
-
-const emit = defineEmits(['choiceMade', 'empty']);
 
 const places = ref([]);
 const flyDirection = ref(null);
