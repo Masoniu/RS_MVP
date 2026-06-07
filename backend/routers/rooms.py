@@ -128,6 +128,8 @@ def get_room_details(
         models.RoomMember, models.User.id == models.RoomMember.user_id
     ).filter(models.RoomMember.room_id == room_id).all()
 
+    route = db.query(models.Route).filter(models.Route.room_id == room_id).first()
+
     return {
         "id": room.id,
         "name": room.name,
@@ -135,7 +137,12 @@ def get_room_details(
         "status": room.status,
         "creator_id": room.creator_id,
         "created_at": room.created_at,
-        "members": room_members
+        "members": room_members,
+        "route": {
+            "locations": route.locations,
+            "budget": route.budget,
+            "radius_km": route.radius_km
+        } if route else None
     }
 
 

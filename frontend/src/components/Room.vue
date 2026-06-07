@@ -162,7 +162,13 @@ async function loadRoom() {
 
     if (data.route && data.route.locations && data.route.locations.length > 0) {
         selectedLocations.value = data.route.locations;
+        currentStep.value = 3;                              // ← всі кроки пройдено
         isSwiping.value = false;
+        budgetInput.value = String(data.route.budget);      // ← відновити бюджет
+        radiusInput.value = String(data.route.radius_km);   // ← відновити радіус
+        remainingBudget.value = data.route.budget -
+            data.route.locations.reduce((s, l) => s + (l.price || 0), 0); // ← залишок
+
         if (activeTab.value === 'map') {
             setTimeout(drawMap, 200);
         }
@@ -175,7 +181,6 @@ async function loadRoom() {
     loading.value = false;
   }
 }
-
 async function onExpandRadius() {
     const current = parseFloat(radiusInput.value);
     const newRadius = Math.min(current + 2, 50); // +2км, максимум 50

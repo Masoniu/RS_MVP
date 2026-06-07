@@ -1,6 +1,9 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional, Any
+
+from schemas.users import UserResponse
+
 
 class RoomCreate(BaseModel):
     name: str
@@ -27,6 +30,11 @@ class UserShortResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class RouteData(BaseModel):
+    locations: list[Any]
+    budget: float
+    radius_km: float
+
 class RoomDetailResponse(BaseModel):
     id: int
     name: str
@@ -34,8 +42,8 @@ class RoomDetailResponse(BaseModel):
     status: str
     creator_id: int
     created_at: datetime
-    members: List[UserShortResponse]
-    route: Optional[dict] = None
+    members: list[UserResponse]
+    route: Optional[RouteData] = None
 
-    class Config:
-        from_attributes = True
+class Config:
+    from_attributes = True
