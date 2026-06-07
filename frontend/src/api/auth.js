@@ -1,8 +1,4 @@
 import api from './client'
-
-loginWithGoogle(token) {
-  return api.post('/auth/google', { token })
-}
  
 export const authApi = {
   register(payload) {
@@ -17,4 +13,8 @@ export const authApi = {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     })
   },
+
+  loginWithGoogle(token) {
+  return api.post('/auth/google', { token })
+  }
 }
