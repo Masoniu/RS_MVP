@@ -1,9 +1,15 @@
 import axios from 'axios'
+import { ref } from 'vue'
+
+export const isServerWakingUp = ref(false)
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000',
   headers: { 'Content-Type': 'application/json' },
 })
+
+let activeRequests = 0;
+let wakingUpTimeout = null;
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
@@ -27,9 +33,23 @@ function processQueue(error, token = null) {
   failedQueue = []
 }
 
+function stopLoader() {
+  activeRequests--;
+  if (activeRequests <= 0) {
+    activeRequests = 0;
+    clearTimeout(wakingUpTimeout);
+    isServerWakingUp.value = false;
+  }
+}
+
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    stopLoader();
+    return response;
+  },
   async (error) => {
+    stopLoader();
+
     const originalRequest = error.config
 
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -51,11 +71,11 @@ api.interceptors.response.use(
         return Promise.reject(error)
       }
 
-       try {
-         const { data } = await axios.post(
-           `${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/auth/refresh`,
-           { refresh_token: refreshToken },
-         )
+      try {
+        const { data } = await axios.post(
+          `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/auth/refresh`,
+          { refresh_token: refreshToken },
+        )
         localStorage.setItem('access_token', data.access_token)
         localStorage.setItem('refresh_token', data.refresh_token)
         api.defaults.headers.common.Authorization = `Bearer ${data.access_token}`
