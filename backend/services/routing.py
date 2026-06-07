@@ -31,8 +31,7 @@ async def fetch_osm_data(lat: float, lon: float, radius_km: float, db: Session):
     radius_m = radius_km * 1000
 
     query = f"""
-    [out:json];
-    [timeout:25];
+    [out:json][timeout:25];
     (
       nwr["leisure"="park"](around:{radius_m},{lat},{lon});
       nwr["tourism"="museum"](around:{radius_m},{lat},{lon});
