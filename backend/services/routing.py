@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 import models
+import asyncio
 
 
 async def fetch_osm_data(lat: float, lon: float, radius_km: float, db: Session):
@@ -31,18 +32,19 @@ async def fetch_osm_data(lat: float, lon: float, radius_km: float, db: Session):
     }
 
     async with httpx.AsyncClient(headers=headers) as client:
-        for attempt in range(2):
+        for attempt in range(3):
             try:
-                response = await client.post(url, data={"data": query}, timeout=10.0)
+                response = await client.post(url, data={"data": query}, timeout=30.0)
                 response.raise_for_status()
                 data = response.json()
                 break
             except Exception:
-                if attempt == 1:
+                if attempt == 2:
                     raise HTTPException(
                         status_code=status.HTTP_502_BAD_GATEWAY,
                         detail="Помилка з'єднання з Overpass API після двох спроб"
                     )
+                await asyncio.sleep(2 ** attempt)
 
     new_cache = models.OSMCache(
         cache_key=cache_key,

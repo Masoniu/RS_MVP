@@ -1,4 +1,8 @@
 import api from './client'
+
+loginWithGoogle(token) {
+  return api.post('/auth/google', { token })
+}
  
 export const authApi = {
   register(payload) {
