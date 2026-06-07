@@ -9,11 +9,18 @@ from services.security import (
     get_password_hash, verify_password, create_access_token,
     create_refresh_token, REFRESH_SECRET_KEY, ALGORITHM
 )
+from pydantic import BaseModel
+from google.auth.transport import requests
+from google.oauth2 import id_token
+import os
 
 router = APIRouter(
     prefix="/auth",
     tags=["Authentication"]
 )
+
+class GoogleTokenRequest(BaseModel):
+    token: str
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
@@ -94,3 +101,73 @@ def refresh_access_token(body: TokenRefreshRequest, db: Session = Depends(get_db
         "refresh_token": new_refresh_token,
         "token_type": "bearer"
     }
+
+
+@router.post("/google", response_model=Token)
+def google_login(body: GoogleTokenRequest, db: Session = Depends(get_db)):
+    """
+    Login with Google ID token
+    """
+    try:
+        GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+        if not GOOGLE_CLIENT_ID:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="GOOGLE_CLIENT_ID не налаштований на сервері"
+            )
+        
+        # Verify the Google ID token
+        idinfo = id_token.verify_oauth2_token(body.token, requests.Request(), GOOGLE_CLIENT_ID)
+        
+        # Extract user info from token
+        email = idinfo.get('email')
+        name = idinfo.get('name', email.split('@')[0])
+        
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email не знайдено в Google токені"
+            )
+        
+        # Find or create user
+        user = db.query(models.User).filter(models.User.email == email).first()
+        
+        if not user:
+            # Create new user without password for Google auth
+            user = models.User(
+                email=email,
+                name=name,
+                password_hash=""  # Empty password for Google auth users
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        
+        # Generate tokens
+        token_data = {
+            "sub": str(user.id),
+            "name": user.name,
+            "email": user.email
+        }
+        
+        access_token = create_access_token(data=token_data)
+        refresh_token = create_refresh_token(data={"sub": str(user.id)})
+        
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer"
+        }
+        
+    except ValueError as e:
+        # Invalid token
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Невірний Google токен: {str(e)}"
+        )
+    except Exception as e:
+        print(f"Google login error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Помилка при верифікації Google токена"
+        )

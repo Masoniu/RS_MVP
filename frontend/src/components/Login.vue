@@ -1,6 +1,6 @@
 <script setup>
 
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 
@@ -11,6 +11,9 @@ const email = ref('');
 const password = ref('');
 const isSubmitted = ref(false);
 const errorMessage = ref('');
+const googleLoading = ref(false);
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const handleLogin = async () => {
   isSubmitted.value = true;
@@ -28,6 +31,36 @@ const handleLogin = async () => {
     errorMessage.value = error.response?.data?.detail || 'Невірний email або пароль';
   }
 };
+
+const handleGoogleLogin = async (response) => {
+  googleLoading.value = true;
+  errorMessage.value = '';
+
+  try {
+    const { credential } = response;
+    await authStore.loginWithGoogle(credential);
+    router.push('/lobby');
+  } catch (error) {
+    console.error('Google login error:', error);
+    errorMessage.value = error.response?.data?.detail || 'Помилка при вході через Google';
+  } finally {
+    googleLoading.value = false;
+  }
+};
+
+// Initialize Google Sign-In
+onMounted(() => {
+  if (window.google && GOOGLE_CLIENT_ID) {
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleLogin,
+    });
+    window.google.accounts.id.renderButton(
+      document.getElementById('google-button-container'),
+      { theme: 'outline', size: 'large' }
+    );
+  }
+});
 </script>
 
 <template>
@@ -82,10 +115,11 @@ const handleLogin = async () => {
                 <span>або</span>
               </div>
 
-              <button class="btn w-100 google-btn mb-4 d-flex align-items-center justify-content-center">
-                <svg class="google-icon me-2" viewBox="0 0 488 512"><path d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"/></svg>
-                Продовжити з Google
-              </button>
+              <div id="google-button-container" class="text-center mb-4"></div>
+
+               <div v-if="googleLoading" class="text-center mb-4">
+                 <div class="spinner-border spinner-border-sm text-primary"></div>
+               </div>
             </form>
 
             <p class="bottom-text mb-0 text-center">

@@ -41,6 +41,34 @@ export const useAuthStore = defineStore('auth', () => {
    return data
 }
 
+  async function loginWithGoogle(googleToken) {
+    try {
+      const { data } = await api.post('/auth/google', {
+        token: googleToken
+      })
+
+      _setTokens(data.access_token, data.refresh_token)
+
+      const payload = _decodeJwt(data.access_token)
+
+      const userData = {
+        id: payload ? parseInt(payload.sub) : null,
+        email: payload?.email || null,
+        name: payload?.name || null,
+      }
+
+      user.value = userData
+      localStorage.setItem('user', JSON.stringify(userData))
+
+      _scheduleTokenRefresh()
+
+      return data
+    } catch (error) {
+      console.error('Google login error:', error)
+      throw error
+    }
+  }
+
   function logout() {
     if (refreshTimer) {
       clearTimeout(refreshTimer)
@@ -116,5 +144,5 @@ export const useAuthStore = defineStore('auth', () => {
      }, 100)
    }
 
-  return { accessToken, refreshToken, user, isLoggedIn, register, login, logout }
+  return { accessToken, refreshToken, user, isLoggedIn, register, login, loginWithGoogle, logout }
 })
