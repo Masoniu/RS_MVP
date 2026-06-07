@@ -579,6 +579,7 @@ function goToProfile() {
                                     :remainingBudget="remainingBudget"
                                     :userLocation="{ lat: userLat, lon: userLon }"
                                     :previousLocations="selectedLocations"
+                                    :isFinished="currentStep > 2"
                                     @choiceMade="onLocationSelected"
                                     @empty="currentStep++"
                                     @expandRadius="onExpandRadius"

@@ -6,11 +6,13 @@ const props = defineProps({
     categoryTitle: { type: String, default: 'Локація' },
     remainingBudget: { type: Number, required: true },
     userLocation: { type: Object, default: null },
-    previousLocations: { type: Array, default: () => [] }
+    previousLocations: { type: Array, default: () => [] },
+    isFinished: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['choiceMade', 'empty', 'expandRadius']);
 const wasEmptyFromStart = computed(() => props.locations.length === 0);
+const likedCount = computed(() => props.previousLocations.length);
 
 const places = ref([]);
 const flyDirection = ref(null);
@@ -80,7 +82,7 @@ onBeforeUnmount(() => {
 });
 
 const handleChoice = (isLiked) => {
-    if (places.value.length === 0 || flyDirection.value) return;
+    if (places.value.length === 0 || flyDirection.value || props.isFinished) return;
     const currentPlace = places.value[0];
 
     if (isLiked && currentPlace.price > props.remainingBudget) {
