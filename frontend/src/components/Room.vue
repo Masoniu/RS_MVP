@@ -563,8 +563,8 @@ function goToProfile() {
                     <div v-if="activeTab === 'map'" class="d-flex flex-column flex-lg-row gap-4 align-items-start w-100">
 
                         <div class="map-placeholder d-none d-lg-flex flex-column glass-box p-0 overflow-hidden w-100" style="flex: 1; min-height: 550px;">
-                            <div id="route-map-container" class="w-100 h-100" style="min-height: 550px; z-index: 1;">
-                                <div v-if="selectedLocations.length < 3" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="background-color: rgba(98, 80, 80, 0.05);">
+                            <div id="route-map-container" class="w-100 h-100 position-relative" style="min-height: 550px; z-index: 1;">
+                                <div v-if="selectedLocations.length < 3" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center position-absolute top-0 start-0" style="background-color: rgba(98, 80, 80, 0.05); z-index: 2;">
                                     <i class="fa-solid fa-map-location-dot mb-3" style="font-size: 64px; color: #292CA8; opacity: 0.5;"></i>
                                     <h4 class="fw-bold" style="color: #625050;">Мапа маршруту</h4>
                                     <p class="text-muted small">Пройдіть процес вибору локацій!</p>
