@@ -78,7 +78,7 @@ function formatDate(dateStr) {
         <div class="map-pillar pillar-left d-none d-lg-block"></div>
         <div class="map-pillar pillar-right d-none d-lg-block"></div>
 
-        <header class="lobby-header d-flex justify-content-between align-items-center px-4 py-3 position-relative z-3">
+        <header class="lobby-header d-flex justify-content-between align-items-center px-4 py-3 position-fixed top-0 start-0 w-100 z-3">
             <div class="d-flex align-items-center">
                 <img src="../assets/logo.svg" alt="Logo" class="mini-logo me-2">
                 <h2 class="fw-bold mb-0 mini-title">RouteSplitter</h2>
@@ -90,76 +90,79 @@ function formatDate(dateStr) {
             </div>
         </header>
 
-        <div class="flex-grow-1 d-flex align-items-center justify-content-center p-4 position-relative z-2">
-            <div class="lobby-content w-100">
-                
-                <section class="welcome-section text-center mb-4">
-                    <h1 class="fw-bold greeting-text mb-2">Привіт, {{ userName }}!</h1>
-                </section>
+        <div class="flex-grow-1 d-flex align-items-center justify-content-center p-4 position-relative z-2" style="margin-top: 70px;">
+            <div class="d-flex flex-column flex-lg-row gap-4 w-100 justify-content-center" style="max-width: 900px;">
+                <div class="lobby-content w-100 mx-auto">
+                    
+                    <section class="welcome-section text-center mb-4">
+                        <h1 class="fw-bold greeting-text mb-2">Привіт, {{ userName }}!</h1>
+                    </section>
 
-                <div class="glass-card mb-4 text-start mx-auto">
-                    <div class="form-wrapper mx-auto">
-                        <h3 class="glass-card-title text-center mb-4">Куди вирушаємо сьогодні?</h3>
-                        <div class="mb-3">
-                            <input
-                                v-model="inviteCode"
-                                type="text"
-                                class="form-control pretty-input text-center"
-                                :class="{ 'error-glow': joinError }"
-                                placeholder="Введіть код кімнати"
-                                @keyup.enter="joinRoom"
-                            >
-                        </div>
-                        
-                        <div v-if="joinError" class="mb-3">
-                            <div class="alert alert-danger py-2 text-center m-0" style="border-radius: 12px; font-size: 14px;">
-                                {{ joinError }}
+                    <div class="glass-card mb-4 text-start mx-auto">
+                        <div class="form-wrapper mx-auto">
+                            <h3 class="glass-card-title text-center mb-4">Куди вирушаємо сьогодні?</h3>
+                            <div class="mb-3">
+                                <input
+                                    v-model="inviteCode"
+                                    type="text"
+                                    class="form-control pretty-input text-center"
+                                    :class="{ 'error-glow': joinError }"
+                                    placeholder="Введіть код кімнати"
+                                    @keyup.enter="joinRoom"
+                                >
                             </div>
-                        </div>
+                            
+                            <div v-if="joinError" class="mb-3">
+                                <div class="alert alert-danger py-2 text-center m-0" style="border-radius: 12px; font-size: 14px;">
+                                    {{ joinError }}
+                                </div>
+                            </div>
 
-                        <button
-                            @click="joinRoom"
-                            class="btn brown-btn w-100"
-                            :disabled="joinLoading || !inviteCode.trim()"
+                            <button
+                                @click="joinRoom"
+                                class="btn brown-btn w-100"
+                                :disabled="joinLoading || !inviteCode.trim()"
+                            >
+                                <span v-if="joinLoading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                Приєднатися
+                            </button>                    
+                        </div>
+                    </div>
+
+                    <div class="divider mb-4 mx-auto">
+                        <span>або</span>
+                    </div>
+
+                    <button @click="router.push('/create-room')" class="btn w-100 create-btn mx-auto d-block mb-5">
+                        <i class="fa-solid fa-plus me-2"></i> Створити кімнату
+                    </button>
+                </div>
+                <div class="rooms-sidebar w-100 mx-auto" style="max-width: 400px; max-height: 400px; overflow-y: auto;">
+                    <div v-if="roomsLoading" class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm" style="color: #292CA8;"></div>
+                    </div>
+
+                    <div v-else-if="activeRoomsList.length > 0" class="my-rooms-section">
+                        <p class="section-label mb-3">Мої прогулянки</p>
+
+                        <div
+                            v-for="room in activeRoomsList"
+                            :key="room.id"
+                            class="glass-box room-card d-flex align-items-center px-3 py-3 mb-3"
+                            @click="router.push(`/room/${room.id}`)"
                         >
-                            <span v-if="joinLoading" class="spinner-border spinner-border-sm me-2" role="status"></span>
-                            Приєднатися
-                        </button>                    
-                    </div>
-                </div>
-
-                <div class="divider mb-4 mx-auto">
-                    <span>або</span>
-                </div>
-
-                <button @click="router.push('/create-room')" class="btn w-100 create-btn mx-auto d-block mb-5">
-                    <i class="fa-solid fa-plus me-2"></i> Створити кімнату
-                </button>
-
-                <div v-if="roomsLoading" class="text-center py-3">
-                    <div class="spinner-border spinner-border-sm" style="color: #292CA8;"></div>
-                </div>
-
-                <div v-else-if="activeRoomsList.length > 0" class="my-rooms-section">
-                    <p class="section-label mb-3">Мої прогулянки</p>
-
-                    <div
-                        v-for="room in activeRoomsList"
-                        :key="room.id"
-                        class="glass-box room-card d-flex align-items-center px-3 py-3 mb-3"
-                        @click="router.push(`/room/${room.id}`)"
-                    >
-                        <div class="room-icon me-3 icon-active">
-                            <i class="fa-solid fa-location-dot"></i>
+                            <div class="room-icon me-3 icon-active">
+                                <i class="fa-solid fa-location-dot"></i>
+                            </div>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="room-name fw-bold text-truncate">{{ room.name }}</div>
+                                <div class="room-meta">{{ formatDate(room.created_at) }}</div>
+                            </div>
+                            <span class="room-badge ms-2 badge-active"></span>
                         </div>
-                        <div class="flex-grow-1 min-w-0">
-                            <div class="room-name fw-bold text-truncate">{{ room.name }}</div>
-                            <div class="room-meta">{{ formatDate(room.created_at) }}</div>
-                        </div>
-                        <span class="room-badge ms-2 badge-active"></span>
                     </div>
+                    
                 </div>
-                
             </div>
         </div>
     </div>
@@ -205,6 +208,7 @@ function formatDate(dateStr) {
     background-color: #625050; 
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    height: 70px;
 }
 
 .mini-logo { height: 35px; }
