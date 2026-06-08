@@ -110,7 +110,7 @@ const userLat = ref(null);
 const userLon = ref(null);
 
 //current tab in room page (map, participants, expenses) - for me to check
-const activeTab = ref('expenses');
+const activeTab = ref('participants');
 
 watch(activeTab, (newTab) => {
     if (newTab === 'map' && selectedLocations.value.length >= 3 && !isSwiping.value) {
