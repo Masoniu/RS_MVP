@@ -284,7 +284,10 @@ function drawMap() {
 
         setTimeout(() => {
             map.invalidateSize();
-        }, 300);
+            if (locs.length > 0) {
+                map.fitBounds(window.L.latLngBounds(waypoints), { padding: [20, 20] });
+            }
+        }, 500);
     });
 }
 
@@ -562,7 +565,7 @@ function goToProfile() {
 
                     <div v-if="activeTab === 'map'" class="d-flex flex-column flex-lg-row gap-4 align-items-start w-100">
 
-                        <div class="map-placeholder d-none d-lg-flex flex-column glass-box p-0 overflow-hidden w-100" style="flex: 1; min-height: 550px;">
+                        <div class="map-placeholder flex-column glass-box p-0 overflow-hidden w-100" :class="selectedLocations.length >= 3 ? 'd-flex mb-4' : 'd-none d-lg-flex'" style="flex: 1; min-height: 450px;">
                             <div id="route-map-container" class="w-100 h-100 position-relative" style="min-height: 550px; z-index: 1;">
                                 <div v-if="selectedLocations.length < 3" class="w-100 h-100 d-flex flex-column align-items-center justify-content-center position-absolute top-0 start-0" style="background-color: rgba(98, 80, 80, 0.05); z-index: 2;">
                                     <i class="fa-solid fa-map-location-dot mb-3" style="font-size: 64px; color: #292CA8; opacity: 0.5;"></i>
