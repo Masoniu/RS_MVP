@@ -12,6 +12,7 @@ const password = ref('');
 const confirmPassword = ref('');
 const isSubmitted = ref(false);
 const errorMessage = ref('');
+const isLoading = ref(false);
 
 const handleRegister = async () => {
   isSubmitted.value = true;
@@ -25,14 +26,16 @@ const handleRegister = async () => {
     return;
   }
 
+  isLoading.value = true;
   try {
     await authStore.register(email.value, password.value, name.value);
     await authStore.login(email.value, password.value);
-
     router.push('/lobby');
   } catch (error) {
     console.error(error);
     errorMessage.value = error.response?.data?.detail || 'Помилка під час реєстрації';
+  } finally {
+    isLoading.value = false;
   }
 };
 </script>
@@ -98,16 +101,9 @@ const handleRegister = async () => {
                 </div>
             </div>
 
-              <button @click="handleRegister" class="btn w-100 brown-btn mb-4 mt-2">Реєстрація
-              </button>
-
-              <div class="divider mb-4">
-                <span>або</span>
-              </div>
-
-              <button class="btn w-100 google-btn mb-4 d-flex align-items-center justify-content-center">
-                <svg class="google-icon me-2" viewBox="0 0 488 512"><path d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"/></svg>
-                Продовжити з Google
+              <button @click="handleRegister" class="btn w-100 brown-btn mb-4 mt-2" :disabled="isLoading">
+                <span v-if="isLoading" class="spinner-border spinner-border-sm me-2"></span>
+                Реєстрація
               </button>
             </form>
 
@@ -326,7 +322,7 @@ const handleRegister = async () => {
     background: linear-gradient(135deg, rgba(41, 44, 165, 0.6) 0%, rgba(26, 28, 106, 0.6) 100%), 
                 url('../assets/map.jpg');
     background-size: cover;
-    background-position: center;
+    background-position:top center;
     border-right: 1px solid rgba(255, 255, 255, 0.1);
   }
 
