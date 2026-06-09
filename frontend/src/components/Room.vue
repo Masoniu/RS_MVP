@@ -17,25 +17,6 @@ const currentStep = ref(0);
 const selectedLocations = ref([]);
 const remainingBudget = ref(0);
 
-leafletRouting = window.L.Routing.control({
-    waypoints,
-    router: window.L.Routing.osrmv1({ profile: 'foot' }),
-    lineOptions: { styles: [{ color: '#292CA8', opacity: 0.8, weight: 6 }] },
-    addWaypoints: false,
-    routeWhileDragging: false,
-    show: false,
-    collapsible: false,
-    fitSelectedRoutes: false,
-    plan: window.L.Routing.plan(waypoints, {
-        createMarker: (i, wp) => window.L.marker(wp.latLng),
-    }),
-}).addTo(leafletMap);
-
-const routingContainer = leafletRouting.getContainer();
-if (routingContainer) {
-    routingContainer.style.display = 'none';
-}
-
 const currentCategoryLocations = computed(() => {
     if (currentStep.value === 0) return candidates.value.parks;
     if (currentStep.value === 1) return candidates.value.museums;
@@ -296,14 +277,24 @@ function drawMap() {
         }
         locs.forEach(l => waypoints.push(window.L.latLng(l.lat, l.lon)));
 
-        leafletRouting = window.L.Routing.control({   // ← зберігаємо
+        leafletRouting = window.L.Routing.control({
             waypoints,
             router: window.L.Routing.osrmv1({ profile: 'foot' }),
             lineOptions: { styles: [{ color: '#292CA8', opacity: 0.8, weight: 6 }] },
             addWaypoints: false,
             routeWhileDragging: false,
-            show: false
+            show: false,
+            collapsible: false,
+            fitSelectedRoutes: false,
+            plan: window.L.Routing.plan(waypoints, {
+                createMarker: (i, wp) => window.L.marker(wp.latLng),
+            }),
         }).addTo(leafletMap);
+
+        const routingContainer = leafletRouting.getContainer();
+        if (routingContainer) {
+            routingContainer.style.display = 'none';
+        }
 
         setTimeout(() => {
             leafletMap?.invalidateSize();
