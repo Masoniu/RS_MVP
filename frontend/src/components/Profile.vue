@@ -66,14 +66,14 @@ function confirmLogout() {
     <div class="map-pillar pillar-left d-none d-lg-block"></div>
     <div class="map-pillar pillar-right d-none d-lg-block"></div>
 
-    <header class="profile-header d-flex justify-content-between align-items-center px-4 py-3 position-relative z-3">
+    <header class="profile-header d-flex justify-content-between align-items-center px-4 py-3 position-fixed top-0 start-0 w-100 z-3">
       <div class="d-flex align-items-center">
         <i class="fa-solid fa-chevron-left back-icon me-3" @click="router.push('/lobby')"></i>
         <h2 class="fw-bold mb-0 mini-title">Профіль</h2>
       </div>
     </header>
 
-    <div class="flex-grow-1 d-flex justify-content-center p-4 position-relative z-2">
+    <div class="flex-grow-1 d-flex justify-content-center p-4 position-relative z-2" style="margin-top: 80px;">
       <div class="profile-content w-100 mx-auto" style="max-width: 900px;">
 
         <div class="text-center mb-4 mt-2">
@@ -132,7 +132,7 @@ function confirmLogout() {
         </div>
 
         <div v-if="!statsLoading && finishedRoomList.length > 0" class="history-section mt-2 pb-5">
-          <button v-if="!showHistory" @click="showHistory = true" class="btn brown-btn w-100 mx-auto d-block" style="max-width: 400px;">
+          <button v-if="!showHistory" @click="showHistory = true" class="btn create-btn w-100 mx-auto d-block" style="max-width: 400px;">
             <i class="fa-solid fa-clock-rotate-left me-2"></i> Переглянути історію прогулянок
           </button>
 
@@ -213,16 +213,6 @@ function confirmLogout() {
   mask-image: linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
 }
 
-.profile-header {
-    background-color: #625050;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 100;
-    height: 70px;
-}
-
 .pillar-right {
   right: 0;
   background: linear-gradient(135deg, rgba(41, 44, 165, 0.7) 0%, rgba(26, 28, 106, 0.8) 100%), url('../assets/map.jpg');
@@ -236,6 +226,7 @@ function confirmLogout() {
   background-color: #625050;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  height: 70px;
 }
 
 .mini-title { font-size: 20px; color: #ffffff; }
