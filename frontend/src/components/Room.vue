@@ -291,18 +291,27 @@ function drawMap() {
     });
 }
 
-function resetRoute() {
+async function resetRoute() {
     if (confirm('Ви впевнені, що хочете скинути поточний маршрут і створити новий?')) {
-        if (leafletMap) {
-            leafletMap.remove();
-            leafletMap = null;
-        }
         selectedLocations.value = [];
         candidates.value = { parks: [], museums: [], cafes: [] };
         currentStep.value = 0;
         remainingBudget.value = 0;
         routeError.value = '';
         isSwiping.value = false;
+
+        await nextTick();
+        if (leafletMap) {
+            leafletMap.remove();
+            leafletMap = null;
+        }
+
+        if (!userLat.value) {
+            navigator.geolocation?.getCurrentPosition(
+                (pos) => { userLat.value = pos.coords.latitude; userLon.value = pos.coords.longitude; },
+                () => {}
+            );
+        }
     }
 }
 
