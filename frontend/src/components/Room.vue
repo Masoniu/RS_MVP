@@ -77,6 +77,8 @@ async function confirmDeleteExpense() {
 
 const routeLoading = ref(false);
 const routeError = ref('');
+const showExpandRadiusModal = ref(false);
+const isExpandingRadius = ref(false);
 const isSwiping = ref(false);
 
 const budgetInput = ref('500');
@@ -181,7 +183,14 @@ async function loadRoom() {
   }
 }
 
+function promptExpandRadius() {
+    showExpandRadiusModal.value = true;
+}
+
 async function onExpandRadius() {
+    showExpandRadiusModal.value = false;
+    isExpandingRadius.value = true;
+
     const current = parseFloat(radiusInput.value);
     const newRadius = Math.min(current + 2, 50);
     radiusInput.value = String(newRadius);
@@ -198,6 +207,7 @@ async function onExpandRadius() {
         routeError.value = err.response?.data?.detail || 'Помилка при пошуку';
     } finally {
         routeLoading.value = false;
+        isExpandingRadius.value = false;
     }
 }
 
@@ -627,9 +637,10 @@ function goToProfile() {
                                     :userLocation="{ lat: userLat, lon: userLon }"
                                     :previousLocations="selectedLocations"
                                     :isFinished="currentStep > 2"
+                                    :isExpanding="isExpandingRadius"
                                     @choiceMade="onLocationSelected"
                                     @empty="currentStep++"
-                                    @expandRadius="onExpandRadius"
+                                    @expandRadius="promptExpandRadius"
                                 />
                             </div>
 
@@ -751,6 +762,22 @@ function goToProfile() {
                 <div class="d-flex gap-3">
                     <button class="btn create-btn flex-fill" @click="showDeleteModal = false; expenseToDelete = null">Скасувати</button>
                     <button class="btn btn-danger flex-fill fw-bold" style="border-radius: 12px;" @click="confirmDeleteExpense">Видалити</button>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="showExpandRadiusModal" class="custom-modal-overlay d-flex align-items-center justify-content-center z-3">
+            <div class="glass-box modal-card p-4 text-center mx-3 fade-in">
+                <div class="warning-icon-wrapper mx-auto mb-3" style="background-color: rgba(41, 44, 165, 0.1);">
+                    <i class="fa-solid fa-map-location-dot fs-1" style="color: #292CA8;"></i>
+                </div>
+                <h4 class="fw-bold mb-2" style="color: #3b1c1c;">Розширити радіус?</h4>
+                <p class="text-muted mb-4 small">
+                    Радіус пошуку буде збільшено на 2 км. Це допоможе знайти більше локацій, але до них доведеться довше йти.
+                </p>
+                <div class="d-flex gap-3">
+                    <button class="btn create-btn flex-fill" @click="showExpandRadiusModal = false">Скасувати</button>
+                    <button class="btn flex-fill fw-bold" style="border-radius: 12px; background-color: #292CA8; color: white;" @click="confirmExpandRadius">Так</button>
                 </div>
             </div>
         </div>
