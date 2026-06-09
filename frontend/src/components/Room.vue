@@ -13,7 +13,7 @@ const authStore = useAuthStore();
 const roomId = computed(() => parseInt(route.params.id));
 
 const candidates = ref({ parks: [], museums: [], cafes: [] });
-const currentStep = ref(0); // 0: парки, 1: музеї, 2: кафе, 3: фінал
+const currentStep = ref(0);
 const selectedLocations = ref([]);
 const remainingBudget = ref(0);
 
@@ -79,10 +79,6 @@ const routeLoading = ref(false);
 const routeError = ref('');
 const isSwiping = ref(false);
 
-const startSwipe = (event) => {
-    isSwiping.value = true;
-};
-
 const budgetInput = ref('500');
 const radiusInput = ref('2');
 const budgetError = ref('');
@@ -109,7 +105,6 @@ function validateRadius() {
 const userLat = ref(null);
 const userLon = ref(null);
 
-//current tab in room page (map, participants, expenses) - for me to check
 const activeTab = ref('participants');
 
 watch(activeTab, (newTab) => {
@@ -118,7 +113,6 @@ watch(activeTab, (newTab) => {
     }
 });
 
-//DO NOT TOUCH HEADER AND SCROLL, THESE ARE MINE >:)
 const showHeader = ref(true);
 let lastScrollPosition = 0;
 
@@ -128,13 +122,10 @@ const handleScroll = () => {
         showHeader.value = true;
         return;
     }
-
     if (Math.abs(currentScrollPosition - lastScrollPosition) < 50) {
         return;
     }
-
     showHeader.value = currentScrollPosition < lastScrollPosition;
-
     lastScrollPosition = currentScrollPosition;
 };
 
@@ -150,6 +141,10 @@ onMounted(async () => {
 
 onUnmounted(() => {
     window.removeEventListener('scroll', handleScroll);
+    if (leafletMap) {
+        leafletMap.remove();
+        leafletMap = null;
+    }
 });
 
 async function loadRoom() {
@@ -162,12 +157,12 @@ async function loadRoom() {
 
     if (data.route && data.route.locations && data.route.locations.length > 0) {
         selectedLocations.value = data.route.locations;
-        currentStep.value = 3;                              // ← всі кроки пройдено
+        currentStep.value = 3;
         isSwiping.value = false;
-        budgetInput.value = String(data.route.budget);      // ← відновити бюджет
-        radiusInput.value = String(data.route.radius_km);   // ← відновити радіус
+        budgetInput.value = String(data.route.budget);
+        radiusInput.value = String(data.route.radius_km);
         remainingBudget.value = data.route.budget -
-            data.route.locations.reduce((s, l) => s + (l.price || 0), 0); // ← залишок
+            data.route.locations.reduce((s, l) => s + (l.price || 0), 0);
 
         if (activeTab.value === 'map') {
             setTimeout(drawMap, 200);
@@ -181,9 +176,10 @@ async function loadRoom() {
     loading.value = false;
   }
 }
+
 async function onExpandRadius() {
     const current = parseFloat(radiusInput.value);
-    const newRadius = Math.min(current + 2, 50); // +2км, максимум 50
+    const newRadius = Math.min(current + 2, 50);
     radiusInput.value = String(newRadius);
     routeLoading.value = true;
     routeError.value = '';
@@ -243,6 +239,8 @@ async function generateRoute() {
     }
 }
 
+let leafletMap = null;
+
 function drawMap() {
     nextTick(() => {
         const mapContainer = document.getElementById('route-map-container');
@@ -250,22 +248,24 @@ function drawMap() {
             console.error("Помилка: Контейнер мапи не знайдено в DOM.");
             return;
         }
-        const oldMap = window.L.DomUtil.get('route-map-container');
-        if (oldMap != null) {
-            oldMap._leaflet_id = null;
-            mapContainer.innerHTML = '';
+
+        if (leafletMap) {
+            leafletMap.remove();
+            leafletMap = null;
         }
+        mapContainer.innerHTML = '';
 
         const locs = selectedLocations.value;
         if (locs.length < 3 || !window.L) {
             console.error("Помилка: Немає 3 локацій або Leaflet не завантажився.");
             return;
         }
-        const map = window.L.map('route-map-container').setView([locs[0].lat, locs[0].lon], 14);
+
+        leafletMap = window.L.map('route-map-container').setView([locs[0].lat, locs[0].lon], 14);
 
         window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
-        }).addTo(map);
+        }).addTo(leafletMap);
 
         const waypoints = [];
         if (userLat.value && userLon.value) {
@@ -280,12 +280,12 @@ function drawMap() {
             addWaypoints: false,
             routeWhileDragging: false,
             show: false
-        }).addTo(map);
+        }).addTo(leafletMap);
 
         setTimeout(() => {
-            map.invalidateSize();
+            leafletMap?.invalidateSize();
             if (locs.length > 0) {
-                map.fitBounds(window.L.latLngBounds(waypoints), { padding: [20, 20] });
+                leafletMap?.fitBounds(window.L.latLngBounds(waypoints), { padding: [20, 20] });
             }
         }, 500);
     });
@@ -293,8 +293,15 @@ function drawMap() {
 
 function resetRoute() {
     if (confirm('Ви впевнені, що хочете скинути поточний маршрут і створити новий?')) {
+        if (leafletMap) {
+            leafletMap.remove();
+            leafletMap = null;
+        }
         selectedLocations.value = [];
         candidates.value = { parks: [], museums: [], cafes: [] };
+        currentStep.value = 0;
+        remainingBudget.value = 0;
+        routeError.value = '';
         isSwiping.value = false;
     }
 }
@@ -721,7 +728,7 @@ function goToProfile() {
 <style scoped>
 .room-page {
     background-color: var(--bg-main, #f8f9fa);
-    background-image: 
+    background-image:
         radial-gradient(circle at 80% 20%, rgba(100, 109, 210, 0.3) 0%, rgba(98, 80, 80, 0) 40%),
         radial-gradient(circle at 20% 80%, rgba(100, 109, 210, 0.3) 0%, rgba(100, 109, 210, 0) 45%);
     width: 100%;
@@ -744,7 +751,7 @@ function goToProfile() {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     color: #ffffff;
     position: fixed;
-    top: 0;           
+    top: 0;
     left: 0;
     right: 0;
     z-index: 100;
@@ -786,13 +793,13 @@ function goToProfile() {
 
 .main-content {
     padding-top: 110px;
-    padding-bottom: 70px; 
+    padding-bottom: 70px;
 }
 
 @media (min-width: 768px) {
     .main-content {
         padding-top: 120px;
-        padding-bottom: 30px; 
+        padding-bottom: 30px;
     }
 }
 
@@ -923,7 +930,7 @@ function goToProfile() {
     position: fixed;
     top: 0;
     bottom: 0;
-    width: 30vw; 
+    width: 30vw;
     z-index: 1;
 }
 
@@ -954,7 +961,7 @@ function goToProfile() {
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        cursor: pointer;
+    cursor: pointer;
     transition: background-color 0.2s;
 }
 
