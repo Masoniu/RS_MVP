@@ -7,7 +7,8 @@ const props = defineProps({
     remainingBudget: { type: Number, required: true },
     userLocation: { type: Object, default: null },
     previousLocations: { type: Array, default: () => [] },
-    isFinished: { type: Boolean, default: false }
+    isFinished: { type: Boolean, default: false },
+    isExpanding: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['choiceMade', 'empty', 'expandRadius']);
@@ -187,8 +188,9 @@ const endDrag = () => {
     </h3>
     <template v-if="!isFinished && wasEmptyFromStart">
         <p class="text-muted mb-3">У цьому радіусі немає локацій цієї категорії.</p>
-        <button @click="emit('expandRadius')" class="btn expand-btn">
-            <i class="fa-solid fa-expand me-2"></i>Збільшити радіус пошуку
+        <button @click="emit('expandRadius')" class="btn expand-btn" :disabled="isExpanding">
+            <span v-if="isExpanding" class="spinner-border spinner-border-sm me-2"></span>
+            <i v-else class="fa-solid fa-expand me-2"></i>Збільшити радіус пошуку
         </button>
     </template>
     <template v-else>
