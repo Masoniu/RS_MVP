@@ -129,6 +129,15 @@ const handleScroll = () => {
     lastScrollPosition = currentScrollPosition;
 };
 
+onMounted(async () => {
+    window.addEventListener('scroll', handleScroll);
+    await loadRoom();
+    navigator.geolocation?.getCurrentPosition(
+        (pos) => { userLat.value = pos.coords.latitude; userLon.value = pos.coords.longitude; },
+        () => {}
+    );
+});
+
 onUnmounted(() => {
     window.removeEventListener('scroll', handleScroll);
     if (leafletRouting) {
@@ -138,14 +147,6 @@ onUnmounted(() => {
     }
     if (leafletMap) {
         try { leafletMap.remove(); } catch {}
-        leafletMap = null;
-    }
-});
-
-onUnmounted(() => {
-    window.removeEventListener('scroll', handleScroll);
-    if (leafletMap) {
-        leafletMap.remove();
         leafletMap = null;
     }
 });
