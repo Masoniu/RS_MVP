@@ -129,14 +129,17 @@ const handleScroll = () => {
     lastScrollPosition = currentScrollPosition;
 };
 
-onMounted(async () => {
-    window.addEventListener('scroll', handleScroll);
-    await loadRoom();
-
-    navigator.geolocation?.getCurrentPosition(
-        (pos) => { userLat.value = pos.coords.latitude; userLon.value = pos.coords.longitude; },
-        () => {}
-    );
+onUnmounted(() => {
+    window.removeEventListener('scroll', handleScroll);
+    if (leafletRouting) {
+        try { leafletRouting.getPlan().setWaypoints([]); } catch {}
+        try { leafletRouting.remove(); } catch {}
+        leafletRouting = null;
+    }
+    if (leafletMap) {
+        try { leafletMap.remove(); } catch {}
+        leafletMap = null;
+    }
 });
 
 onUnmounted(() => {
@@ -240,26 +243,26 @@ async function generateRoute() {
 }
 
 let leafletMap = null;
+let leafletRouting = null;  // ← додай
 
 function drawMap() {
     nextTick(() => {
         const mapContainer = document.getElementById('route-map-container');
-        if (!mapContainer) {
-            console.error("Помилка: Контейнер мапи не знайдено в DOM.");
-            return;
-        }
+        if (!mapContainer) return;
 
+        if (leafletRouting) {
+            try { leafletRouting.getPlan().setWaypoints([]); } catch {}
+            try { leafletRouting.remove(); } catch {}
+            leafletRouting = null;
+        }
         if (leafletMap) {
-            leafletMap.remove();
+            try { leafletMap.remove(); } catch {}
             leafletMap = null;
         }
         mapContainer.innerHTML = '';
 
         const locs = selectedLocations.value;
-        if (locs.length < 3 || !window.L) {
-            console.error("Помилка: Немає 3 локацій або Leaflet не завантажився.");
-            return;
-        }
+        if (locs.length < 3 || !window.L) return;
 
         leafletMap = window.L.map('route-map-container').setView([locs[0].lat, locs[0].lon], 14);
 
@@ -273,8 +276,8 @@ function drawMap() {
         }
         locs.forEach(l => waypoints.push(window.L.latLng(l.lat, l.lon)));
 
-        window.L.Routing.control({
-            waypoints: waypoints,
+        leafletRouting = window.L.Routing.control({   // ← зберігаємо
+            waypoints,
             router: window.L.Routing.osrmv1({ profile: 'foot' }),
             lineOptions: { styles: [{ color: '#292CA8', opacity: 0.8, weight: 6 }] },
             addWaypoints: false,
@@ -284,7 +287,7 @@ function drawMap() {
 
         setTimeout(() => {
             leafletMap?.invalidateSize();
-            if (locs.length > 0) {
+            if (waypoints.length > 0) {
                 leafletMap?.fitBounds(window.L.latLngBounds(waypoints), { padding: [20, 20] });
             }
         }, 500);
@@ -301,8 +304,14 @@ async function resetRoute() {
         isSwiping.value = false;
 
         await nextTick();
+
+        if (leafletRouting) {
+            try { leafletRouting.getPlan().setWaypoints([]); } catch {}
+            try { leafletRouting.remove(); } catch {}
+            leafletRouting = null;
+        }
         if (leafletMap) {
-            leafletMap.remove();
+            try { leafletMap.remove(); } catch {}
             leafletMap = null;
         }
 
