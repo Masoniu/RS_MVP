@@ -89,11 +89,6 @@ const handleChoice = (isLiked) => {
     if (places.value.length === 0 || flyDirection.value || props.isFinished) return;
     const currentPlace = places.value[0];
 
-    if (isLiked && currentPlace.price > props.remainingBudget) {
-        alert(`Недостатньо бюджету! Це коштує ${currentPlace.price} грн.`);
-        return;
-    }
-
     flyDirection.value = isLiked ? 'right' : 'left';
 
     setTimeout(() => {

@@ -15,6 +15,9 @@ const roomId = computed(() => parseInt(route.params.id));
 const allCandidates = ref([]);
 const selectedLocations = ref([]);
 const remainingBudget = ref(0);
+const affordableCandidates = computed(() => {
+    return allCandidates.value.filter(place => (place.price || 0) <= remainingBudget.value);
+});
 
 const room = ref(null);
 const members = ref([]);
@@ -624,7 +627,7 @@ function goToProfile() {
                                     <span class="badge bg-success">Залишок: {{ remainingBudget }} грн</span>
                                 </div>
                                 <LocationCards
-                                    :locations="allCandidates"
+                                    :locations="affordableCandidates"
                                     :remainingBudget="remainingBudget"
                                     :userLocation="{ lat: userLat, lon: userLon }"
                                     :previousLocations="selectedLocations"
