@@ -193,21 +193,26 @@ const endDrag = () => {
         </div>
 
         <div v-else class="text-center p-4 glass-box w-100" style="max-width: 400px;">
-            <div class="mb-3">
-                <i :class="isFinished ? 'fa-solid fa-check-circle text-success' : 'fa-solid fa-magnifying-glass-location text-muted'"
-                   style="font-size: 48px;"></i>
-            </div>
-            <h3 class="fw-bold" style="color: #625050;">
-                {{ isFinished ? 'Вибір зроблено!' : 'Локацій поруч немає' }}
-            </h3>
-            <template v-if="!isFinished">
-                <p class="text-muted mb-3">Здається, у цьому радіусі порожньо.</p>
-                <button @click="emit('askExpand')" class="btn expand-btn" :disabled="isExpanding">
-                    <span v-if="isExpanding" class="spinner-border spinner-border-sm me-2"></span>
-                    <i v-else class="fa-solid fa-expand me-2"></i>Збільшити радіус
-                </button>
-            </template>
-        </div>
+    <div class="mb-3">
+        <i :class="isFinished ? 'fa-solid fa-check-circle text-success' : 'fa-solid fa-magnifying-glass-location text-muted'"
+           style="font-size: 48px;"></i>
+    </div>
+    <h3 class="fw-bold" style="color: #625050;">
+        {{ isFinished ? 'Вибір зроблено!' : 'Локації закінчилися!' }}
+    </h3>
+    <template v-if="!isFinished && wasEmptyFromStart">
+        <p class="text-muted mb-3">У цьому радіусі немає локацій цієї категорії.</p>
+        <button @click="emit('expandRadius')" class="btn expand-btn" :disabled="isExpanding">
+            <span v-if="isExpanding" class="spinner-border spinner-border-sm me-2"></span>
+            <i v-else class="fa-solid fa-expand me-2"></i>
+            <span v-if="!isExpanding">Збільшити радіус пошуку</span>
+            <span v-else>Шукаємо...</span>
+        </button>
+    </template>
+    <template v-else>
+        <p class="text-muted mb-0">Очікуємо на результати збігів від інших учасників...</p>
+    </template>
+</div>
 
         <div class="controls d-flex gap-4" style="margin-top: -15px; z-index: 10;" v-if="places.length > 0 && !isFinished">
             <button @click="handleChoice(false)" class="btn action-btn skip-btn">
@@ -222,24 +227,121 @@ const endDrag = () => {
 </template>
 
 <style scoped>
-.text-dark-brown { color: #3b1c1c; }
-.glass-box { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.8); border-radius: 20px; box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1); }
-.image-placeholder { height: 350px; background-color: rgba(98, 80, 80, 0.1); border-radius: 16px; display: flex; align-items: center; justify-content: center; }
-.action-btn { width: 65px; height: 65px; border-radius: 50%; font-size: 24px; display: flex; align-items: center; justify-content: center; border: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); transition: transform 0.2s ease; }
-.action-btn:active { transform: scale(0.9); }
-.skip-btn { background-color: #ffffff; color: #625050; border: 2px solid rgba(98, 80, 80, 0.2); }
-.like-btn { background-color: #292CA8; color: #ffffff; }
-.likes-counter { border-radius: 16px; }
-.cards-stack { perspective: 1000px; }
-.place-card { top: 0; left: 0; transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; transform-origin: bottom center; user-select: none; -webkit-user-select: none; }
-.top-card { z-index: 2; transform: translateY(0) scale(1); opacity: 1; touch-action: none; cursor: grab; }
-.top-card:active { cursor: grabbing; }
-.back-card { z-index: 1; transform: translateY(20px) scale(0.92); opacity: 0.7; }
-.back-card .card-info { opacity: 0; visibility: hidden; }
-.top-card .card-info { opacity: 1; visibility: visible; }
-.top-card.fly-left { transform: translateX(-150%) rotate(-15deg); opacity: 0; }
-.top-card.fly-right { transform: translateX(150%) rotate(15deg); opacity: 0; }
-.card-info{ transition: opacity 0.3s ease-in-out; }
-.expand-btn { background-color: #292CA8; color: white; border-radius: 14px; padding: 10px 20px; font-weight: 600; border: none; }
+.text-dark-brown {
+    color: #3b1c1c;
+}
+
+.glass-box {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+}
+
+.image-placeholder {
+    height: 350px;
+    background-color: rgba(98, 80, 80, 0.1);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-btn {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: transform 0.2s ease;
+}
+
+.action-btn:active {
+    transform: scale(0.9);
+}
+
+.skip-btn {
+    background-color: #ffffff;
+    color: #625050;
+    border: 2px solid rgba(98, 80, 80, 0.2);
+}
+
+.like-btn {
+    background-color: #292CA8;
+    color: #ffffff;
+}
+
+.likes-counter {
+    border-radius: 16px;
+}
+
+.cards-stack {
+    perspective: 1000px;
+}
+
+.place-card {
+    top: 0;
+    left: 0;
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    transform-origin: bottom center;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.top-card {
+    z-index: 2;
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    touch-action: none;
+    cursor: grab;
+}
+
+.top-card:active {
+    cursor: grabbing;
+}
+
+.back-card {
+    z-index: 1;
+    transform: translateY(20px) scale(0.92);
+    opacity: 0.7;
+}
+
+.back-card .card-info {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.top-card .card-info {
+    opacity: 1;
+    visibility: visible;
+}
+
+.top-card.fly-left {
+    transform: translateX(-150%) rotate(-15deg);
+    opacity: 0;
+}
+
+.top-card.fly-right {
+    transform: translateX(150%) rotate(15deg);
+    opacity: 0;
+}
+
+.card-info{
+    transition: opacity 0.3s ease-in-out;
+}
+
+.expand-btn {
+    background-color: #292CA8;
+    color: white;
+    border-radius: 14px;
+    padding: 10px 20px;
+    font-weight: 600;
+    border: none;
+}
 .expand-btn:hover { background-color: #1e2180; }
 </style>
