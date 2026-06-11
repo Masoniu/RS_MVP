@@ -12,24 +12,9 @@ const authStore = useAuthStore();
 
 const roomId = computed(() => parseInt(route.params.id));
 
-const candidates = ref({ parks: [], museums: [], cafes: [] });
-const currentStep = ref(0);
+const allCandidates = ref([]);
 const selectedLocations = ref([]);
 const remainingBudget = ref(0);
-
-const currentCategoryLocations = computed(() => {
-    if (currentStep.value === 0) return candidates.value.parks;
-    if (currentStep.value === 1) return candidates.value.museums;
-    if (currentStep.value === 2) return candidates.value.cafes;
-    return [];
-});
-
-const currentCategoryTitle = computed(() => {
-    if (currentStep.value === 0) return 'Оберіть парк';
-    if (currentStep.value === 1) return 'Оберіть музей';
-    if (currentStep.value === 2) return 'Оберіть кафе';
-    return '';
-});
 
 const room = ref(null);
 const members = ref([]);
@@ -202,7 +187,12 @@ async function onExpandRadius() {
             lon: userLon.value,
             radiusKm: newRadius
         });
-        candidates.value = data;
+
+        const flatList = [...data.parks, ...data.museums, ...data.cafes];
+        const existingIds = new Set(allCandidates.value.map(c => c.osm_id));
+        const newUnique = flatList.filter(c => !existingIds.has(c.osm_id));
+
+        allCandidates.value.push(...newUnique.sort(() => Math.random() - 0.5));
     } catch (err) {
         routeError.value = err.response?.data?.detail || 'Помилка при пошуку';
     } finally {
@@ -241,9 +231,11 @@ async function generateRoute() {
             lon: userLon.value,
             radiusKm: parseFloat(radiusInput.value)
         });
-        candidates.value = data;
+
+        const flatList = [...data.parks, ...data.museums, ...data.cafes];
+        allCandidates.value = flatList.sort(() => Math.random() - 0.5);
+
         remainingBudget.value = parseFloat(budgetInput.value);
-        currentStep.value = 0;
         selectedLocations.value = [];
         isSwiping.value = true;
     } catch (err) {
@@ -318,7 +310,7 @@ function drawMap() {
 async function resetRoute() {
     if (confirm('Ви впевнені, що хочете скинути поточний маршрут і створити новий?')) {
         selectedLocations.value = [];
-        candidates.value = { parks: [], museums: [], cafes: [] };
+        allCandidates.value = [];
         currentStep.value = 0;
         remainingBudget.value = 0;
         routeError.value = '';
@@ -348,9 +340,10 @@ async function resetRoute() {
 async function onLocationSelected(place) {
     selectedLocations.value.push(place);
     remainingBudget.value -= place.price;
-    currentStep.value++;
 
-    if (currentStep.value > 2) {
+    allCandidates.value = allCandidates.value.filter(c => c.osm_id !== place.osm_id);
+
+    if (selectedLocations.value.length >= 3) {
         isSwiping.value = false;
         try {
             await roomsApi.saveRoute(roomId.value, {
@@ -627,20 +620,18 @@ function goToProfile() {
                         <div class="controls-column w-100 d-flex flex-column" style="max-width: 450px; margin: 0 auto;">
                             <div v-if="isSwiping">
                                 <div class="text-center mb-2">
-                                    <h5 class="fw-bold text-primary">{{ currentCategoryTitle }}</h5>
+                                    <h5 class="fw-bold text-primary">Оберіть {{ selectedLocations.length + 1 }}-ю локацію</h5>
                                     <span class="badge bg-success">Залишок: {{ remainingBudget }} грн</span>
                                 </div>
                                 <LocationCards
-                                    :locations="currentCategoryLocations"
-                                    :categoryTitle="currentCategoryTitle"
+                                    :locations="allCandidates"
                                     :remainingBudget="remainingBudget"
                                     :userLocation="{ lat: userLat, lon: userLon }"
                                     :previousLocations="selectedLocations"
-                                    :isFinished="currentStep > 2"
+                                    :isFinished="selectedLocations.length >= 3"
                                     :isExpanding="isExpandingRadius"
                                     @choiceMade="onLocationSelected"
-                                    @empty="currentStep++"
-                                    @expandRadius="promptExpandRadius"
+                                    @askExpand="promptExpandRadius"
                                 />
                             </div>
 
