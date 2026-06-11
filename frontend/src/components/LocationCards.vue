@@ -190,7 +190,9 @@ const endDrag = () => {
         <p class="text-muted mb-3">У цьому радіусі немає локацій цієї категорії.</p>
         <button @click="emit('expandRadius')" class="btn expand-btn" :disabled="isExpanding">
             <span v-if="isExpanding" class="spinner-border spinner-border-sm me-2"></span>
-            <i v-else class="fa-solid fa-expand me-2"></i>Збільшити радіус пошуку
+            <i v-else class="fa-solid fa-expand me-2"></i>
+            <span v-if="!isExpanding">Збільшити радіус пошуку</span>
+            <span v-else>Шукаємо...</span>
         </button>
     </template>
     <template v-else>
