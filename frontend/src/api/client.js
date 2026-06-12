@@ -73,8 +73,8 @@ api.interceptors.response.use(
 
       try {
         const { data } = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/auth/refresh`,
-          { refresh_token: refreshToken },
+            `${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/auth/refresh`,
+            { refresh_token: refreshToken },
         )
         localStorage.setItem('access_token', data.access_token)
         localStorage.setItem('refresh_token', data.refresh_token)
