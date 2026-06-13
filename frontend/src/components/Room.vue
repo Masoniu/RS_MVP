@@ -13,23 +13,13 @@ const authStore = useAuthStore();
 const roomId = computed(() => parseInt(route.params.id));
 const currentUserAvatar = computed(() => authStore.user?.avatar);
 
-const candidates = ref({ parks: [], museums: [], cafes: [] });
-const currentStep = ref(0);
+const allCandidates = ref([]);
 const selectedLocations = ref([]);
 const remainingBudget = ref(0);
+let pollingInterval = null;
 
-const currentCategoryLocations = computed(() => {
-    if (currentStep.value === 0) return candidates.value.parks;
-    if (currentStep.value === 1) return candidates.value.museums;
-    if (currentStep.value === 2) return candidates.value.cafes;
-    return [];
-});
-
-const currentCategoryTitle = computed(() => {
-    if (currentStep.value === 0) return 'Оберіть парк';
-    if (currentStep.value === 1) return 'Оберіть музей';
-    if (currentStep.value === 2) return 'Оберіть кафе';
-    return '';
+const affordableCandidates = computed(() => {
+    return allCandidates.value.filter(place => (place.price || 0) <= remainingBudget.value);
 });
 
 const room = ref(null);
@@ -135,6 +125,11 @@ const handleScroll = () => {
 onMounted(async () => {
     window.addEventListener('scroll', handleScroll);
     await loadRoom();
+
+    pollingInterval = setInterval(() => {
+        loadRoom(true);
+    }, 3000);
+
     navigator.geolocation?.getCurrentPosition(
         (pos) => { userLat.value = pos.coords.latitude; userLon.value = pos.coords.longitude; },
         () => {}
@@ -143,6 +138,12 @@ onMounted(async () => {
 
 onUnmounted(() => {
     window.removeEventListener('scroll', handleScroll);
+
+    if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+    }
+
     stopMapWatch();
     if (leafletRouting) {
         try { leafletRouting.getPlan().setWaypoints([]); } catch {}
@@ -155,8 +156,8 @@ onUnmounted(() => {
     }
 });
 
-async function loadRoom() {
-  loading.value = true;
+async function loadRoom(silent = false) {
+  if (!silent) loading.value = true;
   error.value = '';
   try {
     const { data } = await roomsApi.getRoom(roomId.value);
@@ -165,23 +166,22 @@ async function loadRoom() {
 
     if (data.route && data.route.locations && data.route.locations.length > 0) {
         selectedLocations.value = data.route.locations;
-        currentStep.value = 3;
         isSwiping.value = false;
         budgetInput.value = String(data.route.budget);
         radiusInput.value = String(data.route.radius_km);
         remainingBudget.value = data.route.budget -
             data.route.locations.reduce((s, l) => s + (l.price || 0), 0);
 
-        if (activeTab.value === 'map') {
+        if (activeTab.value === 'map' && !silent) {
             setTimeout(drawMap, 200);
         }
     }
 
-    await loadExpensesAndBalances();
+    await loadExpensesAndBalances(silent);
   } catch (err) {
-    error.value = err.response?.data?.detail || 'Не вдалося завантажити кімнату';
+    if (!silent) error.value = err.response?.data?.detail || 'Не вдалося завантажити кімнату';
   } finally {
-    loading.value = false;
+    if (!silent) loading.value = false;
   }
 }
 
@@ -204,7 +204,11 @@ async function onExpandRadius() {
             lon: userLon.value,
             radiusKm: newRadius
         });
-        candidates.value = data;
+        const flatList = [...data.parks, ...data.museums, ...data.cafes];
+        const existingIds = new Set(allCandidates.value.map(c => c.osm_id));
+        const newUnique = flatList.filter(c => !existingIds.has(c.osm_id));
+
+        allCandidates.value.push(...newUnique.sort(() => Math.random() - 0.5));
     } catch (err) {
         routeError.value = err.response?.data?.detail || 'Помилка при пошуку';
     } finally {
@@ -213,8 +217,8 @@ async function onExpandRadius() {
     }
 }
 
-async function loadExpensesAndBalances() {
-  expensesLoading.value = true;
+async function loadExpensesAndBalances(silent = false) {
+  if (!silent) expensesLoading.value = true;
   try {
     const [expRes, balRes] = await Promise.all([
       expensesApi.getExpenses(roomId.value),
@@ -229,7 +233,7 @@ async function loadExpensesAndBalances() {
     }
   } catch {}
     finally {
-    expensesLoading.value = false;
+    if (!silent) expensesLoading.value = false;
   }
 }
 
@@ -243,9 +247,11 @@ async function generateRoute() {
             lon: userLon.value,
             radiusKm: parseFloat(radiusInput.value)
         });
-        candidates.value = data;
+
+        const flatList = [...data.parks, ...data.museums, ...data.cafes];
+        allCandidates.value = flatList.sort(() => Math.random() - 0.5);
+
         remainingBudget.value = parseFloat(budgetInput.value);
-        currentStep.value = 0;
         selectedLocations.value = [];
         isSwiping.value = true;
     } catch (err) {
@@ -392,8 +398,7 @@ function drawMap() {
 async function resetRoute() {
     if (confirm('Ви впевнені, що хочете скинути поточний маршрут і створити новий?')) {
         selectedLocations.value = [];
-        candidates.value = { parks: [], museums: [], cafes: [] };
-        currentStep.value = 0;
+        allCandidates.value = [];
         remainingBudget.value = 0;
         routeError.value = '';
         isSwiping.value = false;
@@ -424,9 +429,10 @@ async function resetRoute() {
 async function onLocationSelected(place) {
     selectedLocations.value.push(place);
     remainingBudget.value -= place.price;
-    currentStep.value++;
 
-    if (currentStep.value > 2) {
+    allCandidates.value = allCandidates.value.filter(c => c.osm_id !== place.osm_id);
+
+    if (selectedLocations.value.length >= 3) {
         isSwiping.value = false;
         try {
             await roomsApi.saveRoute(roomId.value, {
@@ -496,7 +502,7 @@ async function submitExpense() {
       splitBetween: newExpense.value.splitBetween.map(Number),
     });
     showExpenseForm.value = false;
-    await loadExpensesAndBalances();
+    await loadExpensesAndBalances(true);
   } catch (err) {
     expenseError.value = err.response?.data?.detail || 'Помилка при додаванні витрати';
   } finally {
@@ -522,7 +528,7 @@ async function confirmFinishRoom() {
         await roomsApi.finishRoom(roomId.value);
         localStorage.removeItem('active_room_id');
         room.value.status = 'finished';
-        await loadExpensesAndBalances();
+        await loadExpensesAndBalances(true);
     } catch (err) {
         alert(err.response?.data?.detail || 'Помилка');
     }
@@ -718,20 +724,18 @@ function goToProfile() {
                         <div class="controls-column w-100 d-flex flex-column" style="max-width: 450px; margin: 0 auto;">
                             <div v-if="isSwiping">
                                 <div class="text-center mb-2">
-                                    <h5 class="fw-bold text-primary">{{ currentCategoryTitle }}</h5>
+                                    <h5 class="fw-bold text-primary">Оберіть {{ selectedLocations.length + 1 }}-ю локацію</h5>
                                     <span class="badge bg-success">Залишок: {{ remainingBudget }} грн</span>
                                 </div>
                                 <LocationCards
-                                    :locations="currentCategoryLocations"
-                                    :categoryTitle="currentCategoryTitle"
+                                    :locations="affordableCandidates"
                                     :remainingBudget="remainingBudget"
                                     :userLocation="{ lat: userLat, lon: userLon }"
                                     :previousLocations="selectedLocations"
-                                    :isFinished="currentStep > 2"
+                                    :isFinished="selectedLocations.length >= 3"
                                     :isExpanding="isExpandingRadius"
                                     @choiceMade="onLocationSelected"
-                                    @empty="currentStep++"
-                                    @expandRadius="promptExpandRadius"
+                                    @askExpand="promptExpandRadius"
                                 />
                             </div>
 
@@ -868,7 +872,7 @@ function goToProfile() {
                 </p>
                 <div class="d-flex gap-3">
                     <button class="btn create-btn flex-fill" @click="showExpandRadiusModal = false">Скасувати</button>
-                    <button class="btn flex-fill fw-bold" style="border-radius: 12px; background-color: #292CA8; color: white;" @click="confirmExpandRadius">Так</button>
+                    <button class="btn flex-fill fw-bold" style="border-radius: 12px; background-color: #292CA8; color: white;" @click="onExpandRadius">Так</button>
                 </div>
             </div>
         </div>
