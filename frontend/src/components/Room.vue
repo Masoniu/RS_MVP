@@ -594,7 +594,10 @@ function goToProfile() {
                     <div v-if="activeTab === 'participants'" class="participants-section">
                         <p class="section-title mb-3">Учасники ({{ members.length }})</p>
                         <div v-for="member in members" :key="member.id" class="glass-box participant-card d-flex align-items-center mb-3 px-3 py-2">
-                            <div class="avatar-circle me-3"><i class="fa-solid fa-user text-white"></i></div>
+                            <div class="avatar-circle me-3 overflow-hidden">
+                                <img v-if="member.avatar_url" :src="member.avatar_url" alt="Avatar" class="w-100 h-100" style="object-fit: cover;" />
+                                <i v-else class="fa-solid fa-user text-white"></i>
+                            </div>
                             <span class="participant-name flex-grow-1 fw-bold">{{ member.name }}</span>
                             <span v-if="member.id === room.creator_id" class="badge host-badge">хост</span>
                             <span v-if="member.id === currentUserId" class="badge you-badge ms-2">Ви</span>
@@ -641,7 +644,10 @@ function goToProfile() {
                             <div v-if="expenses.length" class="mb-4">
                                 <p class="section-title mb-2">Останні витрати</p>
                                 <div v-for="exp in expenses" :key="exp.id" class="glass-box participant-card d-flex align-items-center mb-2 px-3 py-2">
-                                    <div class="avatar-circle me-3"><i class="fa-solid fa-receipt text-white"></i></div>
+                                    <div class="avatar-circle me-3 overflow-hidden">
+                                        <img v-if="member.avatar_url" :src="member.avatar_url" alt="Avatar" class="w-100 h-100" style="object-fit: cover;" />
+                                        <i v-else class="fa-solid fa-user text-white"></i>
+                                    </div>
                                     <div class="flex-grow-1 min-w-0">
                                         <div class="fw-bold item-name">{{ exp.description }}</div>
                                         <div class="item-details">Платив: {{ getMemberName(exp.payer_id) }} · ділять: {{ exp.splits.length }} люд.</div>
