@@ -450,6 +450,11 @@ function getMemberName(userId) {
   return m ? m.name : `Користувач ${userId}`;
 }
 
+function getMemberAvatar(userId) {
+  const m = members.value.find((m) => m.id === userId);
+  return m ? m.avatar_url : null;
+}
+
 function resetExpenseForm() {
   newExpense.value = {
     description: '',
@@ -645,7 +650,7 @@ function goToProfile() {
                                 <p class="section-title mb-2">Останні витрати</p>
                                 <div v-for="exp in expenses" :key="exp.id" class="glass-box participant-card d-flex align-items-center mb-2 px-3 py-2">
                                     <div class="avatar-circle me-3 overflow-hidden">
-                                        <img v-if="member.avatar_url" :src="member.avatar_url" alt="Avatar" class="w-100 h-100" style="object-fit: cover;" />
+                                        <img v-if="getMemberAvatar(exp.payer_id)" :src="getMemberAvatar(exp.payer_id)" alt="Avatar" class="w-100 h-100" style="object-fit: cover;" />
                                         <i v-else class="fa-solid fa-user text-white"></i>
                                     </div>
                                     <div class="flex-grow-1 min-w-0">
@@ -666,7 +671,10 @@ function goToProfile() {
                             <div v-if="Object.keys(balances).length" class="mb-4">
                                 <p class="section-title mb-2">Баланси</p>
                                 <div v-for="(amount, userId) in balances" :key="userId" class="glass-box participant-card d-flex align-items-center mb-2 px-3 py-2">
-                                    <div class="avatar-circle me-3"><i class="fa-solid fa-user text-white"></i></div>
+                                    <div class="avatar-circle me-3 overflow-hidden">
+                                        <img v-if="getMemberAvatar(parseInt(userId))" :src="getMemberAvatar(parseInt(userId))" alt="Avatar" class="w-100 h-100" style="object-fit: cover;" />
+                                        <i v-else class="fa-solid fa-user text-white"></i>
+                                    </div>
                                     <span class="participant-name flex-grow-1 fw-bold">{{ getMemberName(parseInt(userId)) }}</span>
                                     <span class="fw-bold" :class="amount > 0 ? 'text-success' : amount < 0 ? 'text-danger' : ''">
                                         {{ amount > 0 ? '+' : '' }}{{ amount.toFixed(0) }} грн
