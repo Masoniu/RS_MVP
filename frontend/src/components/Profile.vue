@@ -3,10 +3,11 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { roomsApi } from '../api/rooms';
-import { GoogleLogin } from 'vue3-google-login';
 
 const router = useRouter();
 const authStore = useAuthStore();
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const user = computed(() => authStore.user);
 const userName = computed(() => user.value?.name || user.value?.email?.split('@')[0] || 'Мандрівник');
@@ -30,6 +31,20 @@ const finishedRoomList = computed(() => myRooms.value.filter((r) => r.status ===
 const showHistory = ref(false);
 const showLogoutModal = ref(false);
 
+const isGoogleLinked = computed(() => user.value?.googleLinked);
+const linkLoading = ref(false);
+
+const handleLinkGoogle = async (response) => {
+  linkLoading.value = true;
+  try {
+    await authStore.linkGoogleAccount(response.credential);
+  } catch (error) {
+    alert(error.response?.data?.detail || 'Не вдалося прив\'язати акаунт');
+  } finally {
+    linkLoading.value = false;
+  }
+};
+
 onMounted(async () => {
   try {
     const { data } = await roomsApi.getMyRooms();
@@ -38,6 +53,18 @@ onMounted(async () => {
     // мовчки
   } finally {
     statsLoading.value = false;
+  }
+
+  if (window.google && GOOGLE_CLIENT_ID && !isGoogleLinked.value) {
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleLinkGoogle,
+    });
+
+    window.google.accounts.id.renderButton(
+      document.getElementById('profile-google-button'),
+      { theme: 'outline', size: 'large' }
+    );
   }
 });
 
@@ -58,21 +85,6 @@ function confirmLogout() {
   localStorage.removeItem('active_room_id');
   router.push('/');
 }
-
-const isGoogleLinked = computed(() => user.value?.googleLinked);
-const linkLoading = ref(false);
-
-const handleLinkGoogle = async (response) => {
-  linkLoading.value = true;
-  try {
-    await authStore.linkGoogleAccount(response.credential);
-  } catch (error) {
-    alert(error.response?.data?.detail || 'Не вдалося прив\'язати акаунт');
-  } finally {
-    linkLoading.value = false;
-  }
-};
-
 </script>
 
 <template>
@@ -92,8 +104,9 @@ const handleLinkGoogle = async (response) => {
       <div class="profile-content w-100 mx-auto" style="max-width: 900px;">
 
         <div class="text-center mb-4 mt-2">
-          <div class="big-avatar mx-auto mb-3">
-            <span class="initials-text">{{ initials }}</span>
+          <div class="big-avatar mx-auto mb-3 overflow-hidden">
+            <img v-if="user?.avatar" :src="user.avatar" alt="Avatar" class="w-100 h-100" style="object-fit: cover;" />
+            <span v-else class="initials-text">{{ initials }}</span>
           </div>
           <h2 class="fw-bold profile-name mb-1">{{ userName }}</h2>
           <p class="profile-email mb-0">{{ userEmail }}</p>
@@ -160,12 +173,12 @@ const handleLinkGoogle = async (response) => {
                 </div>
             </div>
 
-            <div v-if="!isGoogleLinked" class="position-relative">
-                <button class="btn btn-sm btn-outline-primary fw-bold" :disabled="linkLoading" style="border-radius: 10px;">
+            <div v-if="!isGoogleLinked" class="position-relative overflow-hidden" style="width: 130px; height: 40px; border-radius: 10px;">
+                <button class="btn btn-sm btn-outline-primary fw-bold w-100 h-100 position-absolute top-0 start-0" :disabled="linkLoading" style="border-radius: 10px; z-index: 1;">
                     <span v-if="linkLoading" class="spinner-border spinner-border-sm"></span>
                     <span v-else>Прив'язати</span>
                 </button>
-                <GoogleLogin :callback="handleLinkGoogle" class="position-absolute top-0 start-0 w-100 h-100 opacity-0" style="cursor: pointer;"></GoogleLogin>
+                <div id="profile-google-button" class="position-absolute top-0 start-0 w-100 h-100" style="opacity: 0.01; z-index: 10;"></div>
             </div>
           </div>
         </div>
