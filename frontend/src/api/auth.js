@@ -15,6 +15,9 @@ export const authApi = {
   },
 
   loginWithGoogle(token) {
-  return api.post('/auth/google', { token })
+    return api.post('/auth/google', { token })
+  },
+  linkGoogle(token) {
+    return api.post('/auth/link-google', { token })
   }
 }

@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { roomsApi } from '../api/rooms';
+import { GoogleLogin } from 'vue3-google-login';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -58,6 +59,20 @@ function confirmLogout() {
   router.push('/');
 }
 
+const isGoogleLinked = computed(() => user.value?.googleLinked);
+const linkLoading = ref(false);
+
+const handleLinkGoogle = async (response) => {
+  linkLoading.value = true;
+  try {
+    await authStore.linkGoogleAccount(response.credential);
+  } catch (error) {
+    alert(error.response?.data?.detail || 'Не вдалося прив\'язати акаунт');
+  } finally {
+    linkLoading.value = false;
+  }
+};
+
 </script>
 
 <template>
@@ -109,7 +124,7 @@ function confirmLogout() {
         </div>
 
         <div class="glass-box p-4 mb-4">
-          <p class="section-label mb-3">Інформація</p>
+          <p class="section-label mb-3">Інформація та безпека</p>
 
           <div class="info-row d-flex align-items-center py-2">
             <div class="info-icon me-3"><i class="fa-solid fa-user"></i></div>
@@ -129,6 +144,30 @@ function confirmLogout() {
             </div>
           </div>
 
+          <div class="info-divider"></div>
+
+          <div class="info-row d-flex align-items-center justify-content-between py-3">
+            <div class="d-flex align-items-center">
+                <div class="info-icon me-3" style="background: rgba(234, 67, 53, 0.1); color: #EA4335;">
+                    <i class="fa-brands fa-google"></i>
+                </div>
+                <div>
+                    <div class="info-label">Google Акаунт</div>
+                    <div class="info-value">
+                        <span v-if="isGoogleLinked" class="text-success"><i class="fa-solid fa-check-circle me-1"></i> Прив'язано</span>
+                        <span v-else class="text-muted">Не прив'язано</span>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="!isGoogleLinked" class="position-relative">
+                <button class="btn btn-sm btn-outline-primary fw-bold" :disabled="linkLoading" style="border-radius: 10px;">
+                    <span v-if="linkLoading" class="spinner-border spinner-border-sm"></span>
+                    <span v-else>Прив'язати</span>
+                </button>
+                <GoogleLogin :callback="handleLinkGoogle" class="position-absolute top-0 start-0 w-100 h-100 opacity-0" style="cursor: pointer;"></GoogleLogin>
+            </div>
+          </div>
         </div>
 
         <div v-if="!statsLoading && finishedRoomList.length > 0" class="history-section mt-2 pb-5">

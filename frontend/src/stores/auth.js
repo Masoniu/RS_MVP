@@ -27,6 +27,8 @@ export const useAuthStore = defineStore('auth', () => {
       id: payload ? parseInt(payload.sub) : null,
       email: payload?.email || email,
       name: payload?.name || null,
+      avatar: payload?.avatar || null,
+      googleLinked: payload?.google_linked || false,
     }
 
     user.value = userData
@@ -47,6 +49,8 @@ export const useAuthStore = defineStore('auth', () => {
         id: payload ? parseInt(payload.sub) : null,
         email: payload?.email || null,
         name: payload?.name || null,
+        avatar: payload?.avatar || null,
+        googleLinked: payload?.google_linked || false,
       }
 
       user.value = userData
@@ -54,6 +58,27 @@ export const useAuthStore = defineStore('auth', () => {
       return data
     } catch (error) {
       console.error('Google login error:', error)
+      throw error
+    }
+  }
+
+  async function linkGoogleAccount(googleToken) {
+    try {
+      const { data } = await authApi.linkGoogle(googleToken)
+      _setTokens(data.access_token, data.refresh_token)
+
+      const payload = _decodeJwt(data.access_token)
+      user.value = {
+        id: payload ? parseInt(payload.sub) : null,
+        email: payload?.email || null,
+        name: payload?.name || null,
+        avatar: payload?.avatar || null,
+        googleLinked: payload?.google_linked || false,
+      }
+      localStorage.setItem('user', JSON.stringify(user.value))
+      return data
+    } catch (error) {
+      console.error('Помилка прив\'язки:', error)
       throw error
     }
   }
@@ -84,5 +109,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { accessToken, refreshToken, user, isLoggedIn, register, login, loginWithGoogle, logout }
+  return { accessToken, refreshToken, user, isLoggedIn, register, login, loginWithGoogle, logout, linkGoogleAccount }
 })
