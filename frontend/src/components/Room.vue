@@ -42,6 +42,7 @@ const expenseSubmitting = ref(false);
 const deletingExpenseId = ref(null);
 const showDeleteModal = ref(false);
 const expenseToDelete = ref(null);
+const currentStep = ref(0);
 
 function promptDeleteExpense(exp) {
     expenseToDelete.value = exp;
@@ -771,7 +772,7 @@ function goToProfile() {
                 </p>
                 <div class="d-flex gap-3">
                     <button class="btn create-btn flex-fill" @click="showExpandRadiusModal = false">Скасувати</button>
-                    <button class="btn flex-fill fw-bold" style="border-radius: 12px; background-color: #292CA8; color: white;" @click="confirmExpandRadius">Так</button>
+                    <button class="btn flex-fill fw-bold" style="border-radius: 12px; background-color: #292CA8; color: white;" @click="onExpandRadius">Так</button>
                 </div>
             </div>
         </div>
