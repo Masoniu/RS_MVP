@@ -26,6 +26,7 @@ class UserShortResponse(BaseModel):
     id: int
     name: str
     email: str
+    avatar_url: Optional[str] = None
 
     class Config:
         from_attributes = True

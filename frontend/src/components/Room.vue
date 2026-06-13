@@ -11,6 +11,7 @@ const route = useRoute();
 const authStore = useAuthStore();
 
 const roomId = computed(() => parseInt(route.params.id));
+const currentUserAvatar = computed(() => authStore.user?.avatar);
 
 const candidates = ref({ parks: [], museums: [], cafes: [] });
 const currentStep = ref(0);
@@ -561,8 +562,9 @@ function goToProfile() {
             </nav>
 
             <div class="d-flex justify-content-end header-side">
-                <div class="avatar-circle" @click="goToProfile" title="Профіль">
-                    <i class="fa-solid fa-user text-white"></i>
+                <div class="avatar-circle overflow-hidden" @click="goToProfile" title="Профіль">
+                    <img v-if="currentUserAvatar" :src="currentUserAvatar" alt="Профіль" class="w-100 h-100" style="object-fit: cover;" />
+                    <i v-else class="fa-solid fa-user text-white"></i>
                 </div>
             </div>
         </header>

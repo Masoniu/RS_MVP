@@ -8,6 +8,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 
 const userName = computed(() => authStore.user?.name || authStore.user?.email?.split('@')[0] || 'Друже');
+const currentUserAvatar = computed(() => authStore.user?.avatar);
 
 const inviteCode = ref('');
 const joinError = ref('');
@@ -84,8 +85,9 @@ function formatDate(dateStr) {
                 <h2 class="fw-bold mb-0 mini-title">RouteSplitter</h2>
             </div>
             <div class="d-flex align-items-center gap-3">
-                <div class="avatar-circle" @click="goToProfile" title="Профіль">
-                    <i class="fa-solid fa-user text-white"></i>
+                <div class="avatar-circle overflow-hidden" @click="goToProfile" title="Профіль">
+                    <img v-if="currentUserAvatar" :src="currentUserAvatar" alt="Профіль" class="w-100 h-100" style="object-fit: cover;" />
+                    <i v-else class="fa-solid fa-user text-white"></i>
                 </div>
             </div>
         </header>
