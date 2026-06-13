@@ -12,11 +12,23 @@ const authStore = useAuthStore();
 
 const roomId = computed(() => parseInt(route.params.id));
 
-const allCandidates = ref([]);
+const candidates = ref({ parks: [], museums: [], cafes: [] });
+const currentStep = ref(0);
 const selectedLocations = ref([]);
 const remainingBudget = ref(0);
-const affordableCandidates = computed(() => {
-    return allCandidates.value.filter(place => (place.price || 0) <= remainingBudget.value);
+
+const currentCategoryLocations = computed(() => {
+    if (currentStep.value === 0) return candidates.value.parks;
+    if (currentStep.value === 1) return candidates.value.museums;
+    if (currentStep.value === 2) return candidates.value.cafes;
+    return [];
+});
+
+const currentCategoryTitle = computed(() => {
+    if (currentStep.value === 0) return 'Оберіть парк';
+    if (currentStep.value === 1) return 'Оберіть музей';
+    if (currentStep.value === 2) return 'Оберіть кафе';
+    return '';
 });
 
 const room = ref(null);
@@ -42,7 +54,6 @@ const expenseSubmitting = ref(false);
 const deletingExpenseId = ref(null);
 const showDeleteModal = ref(false);
 const expenseToDelete = ref(null);
-const currentStep = ref(0);
 
 function promptDeleteExpense(exp) {
     expenseToDelete.value = exp;
@@ -131,6 +142,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
     window.removeEventListener('scroll', handleScroll);
+    stopMapWatch();
     if (leafletRouting) {
         try { leafletRouting.getPlan().setWaypoints([]); } catch {}
         try { leafletRouting.remove(); } catch {}
@@ -191,12 +203,7 @@ async function onExpandRadius() {
             lon: userLon.value,
             radiusKm: newRadius
         });
-
-        const flatList = [...data.parks, ...data.museums, ...data.cafes];
-        const existingIds = new Set(allCandidates.value.map(c => c.osm_id));
-        const newUnique = flatList.filter(c => !existingIds.has(c.osm_id));
-
-        allCandidates.value.push(...newUnique.sort(() => Math.random() - 0.5));
+        candidates.value = data;
     } catch (err) {
         routeError.value = err.response?.data?.detail || 'Помилка при пошуку';
     } finally {
@@ -235,11 +242,9 @@ async function generateRoute() {
             lon: userLon.value,
             radiusKm: parseFloat(radiusInput.value)
         });
-
-        const flatList = [...data.parks, ...data.museums, ...data.cafes];
-        allCandidates.value = flatList.sort(() => Math.random() - 0.5);
-
+        candidates.value = data;
         remainingBudget.value = parseFloat(budgetInput.value);
+        currentStep.value = 0;
         selectedLocations.value = [];
         isSwiping.value = true;
     } catch (err) {
@@ -250,12 +255,52 @@ async function generateRoute() {
 }
 
 let leafletMap = null;
-let leafletRouting = null;  // ← додай
+let leafletRouting = null;
+let mapWatchId = null;
+let mapUserMarker = null;
+let mapAccuracyCircle = null;
+
+function categoryLabel(cat) {
+    return cat === 'park' ? 'Парк' : cat === 'museum' ? 'Музей' : 'Кафе';
+}
+
+function stopMapWatch() {
+    if (mapWatchId !== null) {
+        navigator.geolocation.clearWatch(mapWatchId);
+        mapWatchId = null;
+    }
+}
+
+function updateMapUserMarker(lat, lon, accuracy) {
+    if (!leafletMap) return;
+    if (mapUserMarker)     { leafletMap.removeLayer(mapUserMarker);     mapUserMarker = null; }
+    if (mapAccuracyCircle) { leafletMap.removeLayer(mapAccuracyCircle); mapAccuracyCircle = null; }
+
+    if (accuracy && accuracy < 300) {
+        mapAccuracyCircle = window.L.circle([lat, lon], {
+            radius: accuracy,
+            color: '#292CA8', fillColor: '#292CA8',
+            fillOpacity: 0.08, weight: 1, interactive: false
+        }).addTo(leafletMap);
+    }
+
+    const pulseIcon = window.L.divIcon({
+        className: '',
+        html: `<div class="rm-pulse-outer"><div class="rm-pulse-inner"></div></div>`,
+        iconSize: [22, 22], iconAnchor: [11, 11], popupAnchor: [0, -13]
+    });
+    mapUserMarker = window.L.marker([lat, lon], { icon: pulseIcon, zIndexOffset: 1000 })
+        .addTo(leafletMap)
+        .bindPopup(`<div class="rm-popup"><strong>Ви тут</strong></div>`, { closeButton: false });
+}
 
 function drawMap() {
     nextTick(() => {
         const mapContainer = document.getElementById('route-map-container');
         if (!mapContainer) return;
+
+        stopMapWatch();
+        mapUserMarker = null; mapAccuracyCircle = null;
 
         if (leafletRouting) {
             try { leafletRouting.getPlan().setWaypoints([]); } catch {}
@@ -285,42 +330,76 @@ function drawMap() {
 
         leafletRouting = window.L.Routing.control({
             waypoints,
-            router: window.L.Routing.osrmv1({ profile: 'foot' }),
-            lineOptions: { styles: [{ color: '#292CA8', opacity: 0.8, weight: 6 }] },
+            router: window.L.Routing.osrmv1({
+                serviceUrl: 'https://router.project-osrm.org/route/v1',
+                profile: 'foot'
+            }),
+            lineOptions: { styles: [{ color: '#292CA8', opacity: 0.85, weight: 6 }] },
             addWaypoints: false,
             routeWhileDragging: false,
             show: false,
             collapsible: false,
             fitSelectedRoutes: false,
-            plan: window.L.Routing.plan(waypoints, {
-                createMarker: (i, wp) => window.L.marker(wp.latLng),
-            }),
+            createMarker: () => null
         }).addTo(leafletMap);
 
         const routingContainer = leafletRouting.getContainer();
-        if (routingContainer) {
-            routingContainer.style.display = 'none';
+        if (routingContainer) routingContainer.style.display = 'none';
+
+        if (userLat.value && userLon.value) {
+            updateMapUserMarker(userLat.value, userLon.value, null);
         }
+
+        locs.forEach((loc, i) => {
+            const label = i + 1;
+            const icon = window.L.divIcon({
+                className: '',
+                html: `<div class="rm-loc-marker">${label}</div>`,
+                iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -18]
+            });
+            window.L.marker([loc.lat, loc.lon], { icon })
+                .addTo(leafletMap)
+                .bindPopup(`
+                    <div class="rm-popup">
+                        <strong>${loc.name}</strong><br>
+                        <span class="rm-popup-cat">${categoryLabel(loc.category)}</span><br>
+                        <span class="rm-popup-price">${loc.price > 0 ? loc.price + ' грн' : 'Безкоштовно'}</span>
+                    </div>`, { closeButton: false });
+        });
 
         setTimeout(() => {
             leafletMap?.invalidateSize();
             if (waypoints.length > 0) {
-                leafletMap?.fitBounds(window.L.latLngBounds(waypoints), { padding: [20, 20] });
+                leafletMap?.fitBounds(window.L.latLngBounds(waypoints), { padding: [40, 40] });
             }
         }, 500);
+
+        if (navigator.geolocation) {
+            mapWatchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    userLat.value = pos.coords.latitude;
+                    userLon.value = pos.coords.longitude;
+                    updateMapUserMarker(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+                },
+                (err) => console.warn('Map geolocation:', err),
+                { enableHighAccuracy: true, maximumAge: 5000, timeout: 12000 }
+            );
+        }
     });
 }
 
 async function resetRoute() {
     if (confirm('Ви впевнені, що хочете скинути поточний маршрут і створити новий?')) {
         selectedLocations.value = [];
-        allCandidates.value = [];
+        candidates.value = { parks: [], museums: [], cafes: [] };
         currentStep.value = 0;
         remainingBudget.value = 0;
         routeError.value = '';
         isSwiping.value = false;
 
         await nextTick();
+
+        stopMapWatch();
 
         if (leafletRouting) {
             try { leafletRouting.getPlan().setWaypoints([]); } catch {}
@@ -344,10 +423,9 @@ async function resetRoute() {
 async function onLocationSelected(place) {
     selectedLocations.value.push(place);
     remainingBudget.value -= place.price;
+    currentStep.value++;
 
-    allCandidates.value = allCandidates.value.filter(c => c.osm_id !== place.osm_id);
-
-    if (selectedLocations.value.length >= 3) {
+    if (currentStep.value > 2) {
         isSwiping.value = false;
         try {
             await roomsApi.saveRoute(roomId.value, {
@@ -624,18 +702,20 @@ function goToProfile() {
                         <div class="controls-column w-100 d-flex flex-column" style="max-width: 450px; margin: 0 auto;">
                             <div v-if="isSwiping">
                                 <div class="text-center mb-2">
-                                    <h5 class="fw-bold text-primary">Оберіть {{ selectedLocations.length + 1 }}-ю локацію</h5>
+                                    <h5 class="fw-bold text-primary">{{ currentCategoryTitle }}</h5>
                                     <span class="badge bg-success">Залишок: {{ remainingBudget }} грн</span>
                                 </div>
                                 <LocationCards
-                                    :locations="affordableCandidates"
+                                    :locations="currentCategoryLocations"
+                                    :categoryTitle="currentCategoryTitle"
                                     :remainingBudget="remainingBudget"
                                     :userLocation="{ lat: userLat, lon: userLon }"
                                     :previousLocations="selectedLocations"
-                                    :isFinished="selectedLocations.length >= 3"
+                                    :isFinished="currentStep > 2"
                                     :isExpanding="isExpandingRadius"
                                     @choiceMade="onLocationSelected"
-                                    @askExpand="promptExpandRadius"
+                                    @empty="currentStep++"
+                                    @expandRadius="promptExpandRadius"
                                 />
                             </div>
 
@@ -772,7 +852,7 @@ function goToProfile() {
                 </p>
                 <div class="d-flex gap-3">
                     <button class="btn create-btn flex-fill" @click="showExpandRadiusModal = false">Скасувати</button>
-                    <button class="btn flex-fill fw-bold" style="border-radius: 12px; background-color: #292CA8; color: white;" @click="onExpandRadius">Так</button>
+                    <button class="btn flex-fill fw-bold" style="border-radius: 12px; background-color: #292CA8; color: white;" @click="confirmExpandRadius">Так</button>
                 </div>
             </div>
         </div>
@@ -1056,7 +1136,7 @@ function goToProfile() {
     background: linear-gradient(to top, rgba(248, 249, 250, 0.95) 40%, rgba(248, 249, 250, 0) 100%);
     border-top: none;
     height: 90px;
-    padding-bottom: 15px; 
+    padding-bottom: 15px;
     box-shadow: none;
 }
 
@@ -1225,4 +1305,49 @@ function goToProfile() {
     background-color: #ffffff;
     border-color: #625050;
 }
+</style>
+
+<style>
+.rm-pulse-outer {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: rgba(41, 44, 168, 0.2);
+    display: flex; align-items: center; justify-content: center;
+    animation: rm-pulse 1.8s ease-out infinite;
+}
+.rm-pulse-inner {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: #292CA8;
+    border: 2px solid #fff;
+    box-shadow: 0 0 6px rgba(41, 44, 168, 0.7);
+}
+@keyframes rm-pulse {
+    0%   { box-shadow: 0 0 0 0    rgba(41, 44, 168, 0.4); }
+    70%  { box-shadow: 0 0 0 14px rgba(41, 44, 168, 0);   }
+    100% { box-shadow: 0 0 0 0    rgba(41, 44, 168, 0);   }
+}
+
+.rm-loc-marker {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: #292CA8;
+    color: #fff;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 8px rgba(41, 44, 168, 0.45);
+    cursor: pointer;
+}
+
+.rm-popup {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    min-width: 130px;
+}
+.rm-popup-cat   { color: #625050; }
+.rm-popup-price { color: #27ae60; font-weight: 600; }
 </style>
