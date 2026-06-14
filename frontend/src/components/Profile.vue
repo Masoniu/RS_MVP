@@ -309,7 +309,7 @@ function confirmLogout() {
             </div>
             <h4 class="fw-bold mb-2" style="color: #3b1c1c;">Вийти з акаунту?</h4>
             <p class="text-muted mb-4 small">
-              Тобі доведеться знову вводити логін та пароль при наступному вході.
+              Доведеться знову вводити логін та пароль при наступному вході.
             </p>
             <div class="d-flex gap-3">
               <button class="btn create-btn flex-fill" @click="showLogoutModal = false">Скасувати</button>
@@ -503,7 +503,7 @@ function confirmLogout() {
   transition: all 0.2s;
 }
 .edit-header-btn:hover {
-  background: rgba(255, 255, 255, 0.682);
+  background: #62505027;
   border-color: #625050
 }
 
@@ -758,6 +758,19 @@ function confirmLogout() {
 .save-btn:hover:not(:disabled) { background: #1e2080; color: #fff; }
 .save-btn:disabled { opacity: 0.6; }
 
+.btn-outline-primary{
+  background: rgba(255,255,255,0.15);
+  color: #292CA8;
+  border: 1px solid #292CA8;
+  border-radius: 12px;
+  font-weight: 600;
+  height: 46px;
+  font-size: 14px;
+  padding: 6px 16px;
+  transition: all 0.2s;
+}
+.btn-outline-primary:hover:not(:disabled) { background: rgba(30, 32, 128, 0.204); }
+
 .alert-inline {
   border-radius: 10px;
   font-size: 13px;
@@ -797,15 +810,15 @@ function confirmLogout() {
 .create-btn {
   background-color: rgba(255, 255, 255, 0.8);
   color: #625050;
-  border: 1px solid rgba(98, 80, 80, 0.4);
-  border-radius: 12px;
+  border: 1px solid #6250507e;
+  border-radius: 10px;
   font-weight: 600;
   height: 46px;
   transition: all 0.2s ease;
 }
 
 .create-btn:hover {
-  background-color: #ffffff;
+  background-color: #62505027;
   border-color: #625050;
 }
 </style>

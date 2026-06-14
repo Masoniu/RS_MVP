@@ -210,6 +210,16 @@ onMounted(() => {
   max-width: 300px;
 }
 
+.register-link {
+   color: var(--color-primary); 
+   text-decoration: none; 
+   font-weight: 600; 
+}
+
+.register-link:hover {
+  color: #240783; 
+}
+
 @keyframes appearPoint {
   0% { opacity: 0; transform: scale(0); }
   70% { transform: scale(1.2); }
