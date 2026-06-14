@@ -488,6 +488,10 @@ async function submitExpense() {
     expenseError.value = 'Заповніть опис та суму';
     return;
   }
+  if (Number(newExpense.value.amount) <= 0) {
+    expenseError.value = "Витрата не може бути від'ємною";
+    return;
+  }
   if (newExpense.value.description.length > MAX_DESC) {
         expenseError.value = `Опис не може перевищувати ${MAX_DESC} символів`; return;
   }
@@ -1122,7 +1126,11 @@ function goToProfile() {
     transition: background-color 0.2s;
 }
 
-.avatar-circle:hover { background-color: rgba(255, 255, 255, 0.35); }
+.header-side .avatar-circle {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.header-side .avatar-circle:hover { background-color: rgba(255, 255, 255, 0.35); }
 
 .avatar-circle i {
     font-size: 18px;
@@ -1325,12 +1333,10 @@ function goToProfile() {
 }
 
 .create-btn:hover {
-    background-color: #ffffff;
+    background-color: #62505019;
     border-color: #625050;
 }
-</style>
 
-<style>
 .rm-pulse-outer {
     width: 22px; height: 22px;
     border-radius: 50%;

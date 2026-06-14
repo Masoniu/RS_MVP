@@ -34,6 +34,11 @@ async function handleCreate() {
 function goToProfile() {
   router.push('/profile');
 }
+
+const leaveRoom = () => {
+  router.push('/lobby');
+}
+
 </script>
 
 <template>
@@ -44,8 +49,7 @@ function goToProfile() {
 
     <header class="lobby-header d-flex justify-content-between align-items-center px-4 py-3 position-relative z-3">
       <div class="d-flex align-items-center">
-        <img src="../assets/logo.svg" alt="Logo" class="mini-logo me-2">
-        <h2 class="fw-bold mb-0 mini-title">RouteSplitter</h2>
+        <i class="fa-solid fa-chevron-left back-icon me-3" @click="leaveRoom"></i>
       </div>
       <div class="d-flex align-items-center gap-3">
           <div class="avatar-circle overflow-hidden" @click="goToProfile" title="Профіль">
@@ -93,7 +97,7 @@ function goToProfile() {
               </div>
               <div
                 v-else-if="isSubmitted && !roomName.trim()"
-                class="alert alert-warning py-2 text-center m-0"
+                class="alert alert-danger py-2 text-center m-0"
                 style="border-radius: 12px; font-size: 14px;"
               >
                 Введіть назву прогулянки
@@ -106,7 +110,7 @@ function goToProfile() {
               :disabled="isLoading"
             >
               <span v-if="isLoading" class="spinner-border spinner-border-sm me-2" role="status"></span>
-              <i v-else class="fa-solid fa-plus me-2"></i>
+              <i v-else class="fa-solid me-2"></i>
               Створити кімнату
             </button>
 
@@ -119,8 +123,7 @@ function goToProfile() {
 
         <p class="hint-text text-center mt-4 mx-auto">
           <i class="fa-solid fa-circle-info me-1"></i>
-          Після створення ти отримаєш код запрошення,<br>
-          яким зможеш поділитися з друзями
+          Після створення кімнати буде згенеровано код запрошення, який можна надіслати друзям для приєднання.
         </p>
 
       </div>
@@ -169,11 +172,15 @@ function goToProfile() {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.mini-logo { height: 35px; }
+.back-icon {
+    font-size: 20px;
+    color: #ffffff;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
 
-.mini-title {
-  font-size: 20px;
-  color: #ffffff;
+.back-icon:active {
+    transform: scale(0.9);
 }
 
 .avatar-circle {
@@ -185,6 +192,8 @@ function goToProfile() {
     align-items: center;
     justify-content: center;
 }
+
+.avatar-circle:hover { background-color: rgba(255, 255, 255, 0.35); }
 
 .lobby-content {
   width: 100%;
@@ -300,7 +309,7 @@ function goToProfile() {
   transition: all 0.3s ease;
 }
 .create-btn:hover { 
-  background-color: rgba(255, 255, 255, 0.8); 
+  background-color: #f9ecec8a; 
 }
 
 .hint-text {

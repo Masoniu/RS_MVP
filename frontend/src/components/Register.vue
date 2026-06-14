@@ -265,30 +265,6 @@ const handleRegister = async () => {
   transform: translateY(1px); 
 }
 
-.google-btn {
-  background-color: rgba(255, 255, 255, 0.8);
-  color: #625050;
-  border: 1px solid rgba(98, 80, 80, 0.3);
-  height: 42px;
-  border-radius: 12px;
-  transition: all 0.3s ease;
-}
-
-.google-btn:hover { 
-  background-color: #ffffff; 
-  transform: translateY(-2px); 
-}
-
-.google-btn:active { 
-  transform: translateY(1px); 
-}
-
-.google-icon { 
-  width: 18px;
-  height: 18px;
-  fill: #625050; 
-}
-
 .divider {
   display: flex;
   align-items: center;
@@ -312,6 +288,10 @@ const handleRegister = async () => {
    color: var(--color-primary); 
    text-decoration: none; 
    font-weight: 600; 
+}
+
+.login-link:hover {
+  color: #240783; 
 }
 
 @media (min-width: 767px) {
