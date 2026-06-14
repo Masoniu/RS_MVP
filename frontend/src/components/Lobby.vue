@@ -139,7 +139,7 @@ function formatDate(dateStr) {
                         <i class="fa-solid fa-plus me-2"></i> Створити кімнату
                     </button>
                 </div>
-                <div class="rooms-sidebar w-100 mx-auto" style="max-width: 400px;">
+                <div v-if="activeRoomsList.length > 0" class="rooms-sidebar w-100 mx-auto" style="max-width: 400px;">
                     <p class="section-label mb-3">Активні прогулянки</p>
 
                     <div class="rooms-sidebar w-100 mx-auto" style="max-height: 360px; overflow-y: auto;">
@@ -147,23 +147,20 @@ function formatDate(dateStr) {
                             <div class="spinner-border spinner-border-sm" style="color: #292CA8;"></div>
                         </div>
 
-                        <div v-else-if="activeRoomsList.length > 0" class="my-rooms-section">
-
-                            <div
-                                v-for="room in activeRoomsList"
-                                :key="room.id"
-                                class="glass-box room-card d-flex align-items-center px-3 py-3 mb-3"
-                                @click="router.push(`/room/${room.id}`)"
-                            >
-                                <div class="room-icon me-3 icon-active">
-                                    <i class="fa-solid fa-location-dot"></i>
-                                </div>
-                                <div class="flex-grow-1 min-w-0">
-                                    <div class="room-name fw-bold text-truncate">{{ room.name }}</div>
-                                    <div class="room-meta">{{ formatDate(room.created_at) }}</div>
-                                </div>
-                                <span class="room-badge ms-2 badge-active"></span>
+                        <div
+                            v-for="room in activeRoomsList"
+                            :key="room.id"
+                            class="glass-box room-card d-flex align-items-center px-3 py-3 mb-3"
+                            @click="router.push(`/room/${room.id}`)"
+                        >
+                            <div class="room-icon me-3 icon-active">
+                                <i class="fa-solid fa-location-dot"></i>
                             </div>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="room-name fw-bold text-truncate">{{ room.name }}</div>
+                                <div class="room-meta">{{ formatDate(room.created_at) }}</div>
+                            </div>
+                            <span class="room-badge ms-2 badge-active"></span>
                         </div>
                     </div>
                 </div>
