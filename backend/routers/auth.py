@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 from fastapi.security import OAuth2PasswordRequestForm
-from schemas.users import UserCreate, UserResponse, Token, TokenRefreshRequest
+from schemas.users import UserCreate, UserResponse, Token, TokenRefreshRequest, UpdateProfile, ChangePassword
 from services.security import (
     get_password_hash, verify_password, create_access_token,
     create_refresh_token, REFRESH_SECRET_KEY, ALGORITHM
@@ -102,6 +102,66 @@ def refresh_access_token(body: TokenRefreshRequest, db: Session = Depends(get_db
         "refresh_token": new_refresh_token,
         "token_type": "bearer"
     }
+
+
+@router.patch("/profile", response_model=Token)
+def update_profile(
+    body: UpdateProfile,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    if body.email and body.email != current_user.email:
+        existing = db.query(models.User).filter(models.User.email == body.email).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Користувач з таким email вже існує"
+            )
+        current_user.email = body.email
+
+    if body.name is not None:
+        current_user.name = body.name
+
+    db.commit()
+    db.refresh(current_user)
+
+    token_data = {
+        "sub": str(current_user.id),
+        "name": current_user.name,
+        "email": current_user.email,
+        "avatar": current_user.avatar_url,
+        "google_linked": current_user.google_linked
+    }
+
+    return {
+        "access_token": create_access_token(data=token_data),
+        "refresh_token": create_refresh_token(data={"sub": str(current_user.id)}),
+        "token_type": "bearer"
+    }
+
+
+@router.post("/change-password")
+def change_password(
+    body: ChangePassword,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    if not current_user.password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Зміна паролю недоступна для Google-акаунтів"
+        )
+
+    if not verify_password(body.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Поточний пароль невірний"
+        )
+
+    current_user.password_hash = get_password_hash(body.new_password)
+    db.commit()
+
+    return {"detail": "Пароль успішно змінено"}
 
 
 @router.post("/google", response_model=Token)

@@ -83,6 +83,28 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function updateProfile(payload) {
+    const { data } = await authApi.updateProfile(payload)
+    _setTokens(data.access_token, data.refresh_token)
+
+    const decoded = _decodeJwt(data.access_token)
+    user.value = {
+      ...user.value,
+      name: decoded?.name || user.value.name,
+      email: decoded?.email || user.value.email,
+    }
+    localStorage.setItem('user', JSON.stringify(user.value))
+    return data
+  }
+
+  async function changePassword(currentPassword, newPassword) {
+    const { data } = await authApi.changePassword({
+      current_password: currentPassword,
+      new_password: newPassword,
+    })
+    return data
+  }
+
   function logout() {
     accessToken.value = null
     refreshToken.value = null
@@ -90,7 +112,6 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('user')
-    // Одразу повертаємо користувача на сторінку входу
     window.location.href = '/'
   }
 
@@ -109,5 +130,9 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { accessToken, refreshToken, user, isLoggedIn, register, login, loginWithGoogle, logout, linkGoogleAccount }
+  return {
+    accessToken, refreshToken, user, isLoggedIn,
+    register, login, loginWithGoogle, logout, linkGoogleAccount,
+    updateProfile, changePassword,
+  }
 })

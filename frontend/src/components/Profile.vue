@@ -26,10 +26,95 @@ const totalRooms = computed(() => myRooms.value.length);
 const activeRooms = computed(() => myRooms.value.filter((r) => r.status === 'active').length);
 const finishedRooms = computed(() => myRooms.value.filter((r) => r.status === 'finished').length);
 
-const recentRooms = computed(() => myRooms.value.slice(0, 5));
 const finishedRoomList = computed(() => myRooms.value.filter((r) => r.status === 'finished'));
 const showHistory = ref(false);
 const showLogoutModal = ref(false);
+
+const showEditModal = ref(false);
+const editTab = ref('info');
+
+const editName = ref('');
+const editEmail = ref('');
+const editLoading = ref(false);
+const editError = ref('');
+const editSuccess = ref('');
+
+const currentPassword = ref('');
+const newPassword = ref('');
+const confirmPassword = ref('');
+const pwdLoading = ref(false);
+const pwdError = ref('');
+const pwdSuccess = ref('');
+
+function openEditModal() {
+  editName.value = user.value?.name || '';
+  editEmail.value = user.value?.email || '';
+  editError.value = '';
+  editSuccess.value = '';
+  pwdError.value = '';
+  pwdSuccess.value = '';
+  currentPassword.value = '';
+  newPassword.value = '';
+  confirmPassword.value = '';
+  editTab.value = 'info';
+  showEditModal.value = true;
+}
+
+function closeEditModal() {
+  showEditModal.value = false;
+}
+
+async function saveProfile() {
+  editError.value = '';
+  editSuccess.value = '';
+  const payload = {};
+  if (editName.value.trim() && editName.value.trim() !== user.value?.name) {
+    payload.name = editName.value.trim();
+  }
+  if (editEmail.value.trim() && editEmail.value.trim() !== user.value?.email) {
+    payload.email = editEmail.value.trim();
+  }
+  if (!Object.keys(payload).length) {
+    editSuccess.value = 'Змін немає';
+    return;
+  }
+  editLoading.value = true;
+  try {
+    await authStore.updateProfile(payload);
+    editSuccess.value = 'Збережено!';
+    setTimeout(() => { editSuccess.value = ''; }, 2000);
+  } catch (e) {
+    editError.value = e.response?.data?.detail || 'Помилка збереження';
+  } finally {
+    editLoading.value = false;
+  }
+}
+
+async function savePassword() {
+  pwdError.value = '';
+  pwdSuccess.value = '';
+  if (!currentPassword.value) {
+    pwdError.value = 'Введіть поточний пароль';
+    return;
+  }
+  if (newPassword.value !== confirmPassword.value) {
+    pwdError.value = 'Паролі не співпадають';
+    return;
+  }
+  pwdLoading.value = true;
+  try {
+    await authStore.changePassword(currentPassword.value, newPassword.value);
+    pwdSuccess.value = 'Пароль змінено!';
+    currentPassword.value = '';
+    newPassword.value = '';
+    confirmPassword.value = '';
+    setTimeout(() => { pwdSuccess.value = ''; }, 2500);
+  } catch (e) {
+    pwdError.value = e.response?.data?.detail || 'Помилка зміни паролю';
+  } finally {
+    pwdLoading.value = false;
+  }
+}
 
 const isGoogleLinked = computed(() => user.value?.googleLinked);
 const linkLoading = ref(false);
@@ -50,7 +135,6 @@ onMounted(async () => {
     const { data } = await roomsApi.getMyRooms();
     myRooms.value = data;
   } catch {
-    // мовчки
   } finally {
     statsLoading.value = false;
   }
@@ -67,13 +151,6 @@ onMounted(async () => {
     );
   }
 });
-
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString('uk-UA', {
-    day: 'numeric', month: 'long', year: 'numeric',
-  });
-}
 
 function formatDateShort(dateStr) {
   if (!dateStr) return '';
@@ -137,7 +214,14 @@ function confirmLogout() {
         </div>
 
         <div class="glass-box p-4 mb-4">
-          <p class="section-label mb-3">Інформація та безпека</p>
+        
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <p class="section-label mb-0">Інформація та безпека</p>
+
+            <button class="btn edit-header-btn" @click="openEditModal">
+              <i class="fa-solid fa-pen me-2"></i>Редагувати
+            </button>
+          </div>
 
           <div class="info-row d-flex align-items-center py-2">
             <div class="info-icon me-3"><i class="fa-solid fa-user"></i></div>
@@ -234,6 +318,122 @@ function confirmLogout() {
           </div>
         </div>
 
+        <div v-if="showEditModal" class="custom-modal-overlay d-flex align-items-center justify-content-center z-3" @click.self="closeEditModal">
+          <div class="glass-box edit-modal-card p-4 mx-3 fade-in">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h5 class="fw-bold mb-0" style="color: #3b1c1c;">Редагування профілю</h5>
+              <button class="btn-close-modal" @click="closeEditModal">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <div class="edit-tabs d-flex mb-4">
+              <button
+                class="edit-tab-btn flex-fill"
+                :class="{ active: editTab === 'info' }"
+                @click="editTab = 'info'"
+              >
+                <i class="fa-solid fa-user me-2"></i>Дані
+              </button>
+              <button
+                class="edit-tab-btn flex-fill"
+                :class="{ active: editTab === 'password' }"
+                @click="editTab = 'password'"
+                :disabled="isGoogleLinked && !user?.password_hash"
+              >
+                <i class="fa-solid fa-lock me-2"></i>Пароль
+              </button>
+            </div>
+
+            <div v-if="editTab === 'info'">
+              <div class="mb-3">
+                <label class="edit-field-label">Ім'я</label>
+                <input
+                  v-model="editName"
+                  type="text"
+                  class="form-control edit-input"
+                  placeholder="Ваше ім'я"
+                />
+              </div>
+              <div class="mb-4">
+                <label class="edit-field-label">Email</label>
+                <input
+                  v-model="editEmail"
+                  type="email"
+                  class="form-control edit-input"
+                  placeholder="email@example.com"
+                />
+              </div>
+
+              <div v-if="editError" class="alert-inline alert-inline-danger mb-3">
+                <i class="fa-solid fa-circle-exclamation me-2"></i>{{ editError }}
+              </div>
+              <div v-if="editSuccess" class="alert-inline alert-inline-success mb-3">
+                <i class="fa-solid fa-check-circle me-2"></i>{{ editSuccess }}
+              </div>
+
+              <div class="d-flex gap-3">
+                <button class="btn create-btn flex-fill" @click="closeEditModal">Скасувати</button>
+                <button class="btn save-btn flex-fill" @click="saveProfile" :disabled="editLoading">
+                  <span v-if="editLoading" class="spinner-border spinner-border-sm me-2"></span>
+                  Зберегти
+                </button>
+              </div>
+            </div>
+
+            <div v-if="editTab === 'password'">
+              <div v-if="isGoogleLinked && !user?.hasPassword" class="alert-inline alert-inline-danger mb-3">
+                <i class="fa-solid fa-circle-info me-2"></i>Google-акаунти не мають пароля
+              </div>
+              <template v-else>
+                <div class="mb-3">
+                  <label class="edit-field-label">Поточний пароль</label>
+                  <input
+                    v-model="currentPassword"
+                    type="password"
+                    class="form-control edit-input"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div class="mb-3">
+                  <label class="edit-field-label">Новий пароль</label>
+                  <input
+                    v-model="newPassword"
+                    type="password"
+                    class="form-control edit-input"
+                    placeholder="Введіть новий пароль"
+                  />
+                </div>
+                <div class="mb-4">
+                  <label class="edit-field-label">Підтвердження</label>
+                  <input
+                    v-model="confirmPassword"
+                    type="password"
+                    class="form-control edit-input"
+                    placeholder="Повторіть новий пароль"
+                  />
+                </div>
+
+                <div v-if="pwdError" class="alert-inline alert-inline-danger mb-3">
+                  <i class="fa-solid fa-circle-exclamation me-2"></i>{{ pwdError }}
+                </div>
+                <div v-if="pwdSuccess" class="alert-inline alert-inline-success mb-3">
+                  <i class="fa-solid fa-check-circle me-2"></i>{{ pwdSuccess }}
+                </div>
+
+                <div class="d-flex gap-3">
+                  <button class="btn create-btn flex-fill" @click="closeEditModal">Скасувати</button>
+                  <button class="btn save-btn flex-fill" @click="savePassword" :disabled="pwdLoading">
+                    <span v-if="pwdLoading" class="spinner-border spinner-border-sm me-2"></span>
+                    Змінити
+                  </button>
+                </div>
+              </template>
+            </div>
+
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -290,6 +490,22 @@ function confirmLogout() {
   transition: color 0.2s;
 }
 .back-icon:hover { color: #fff; }
+
+.edit-header-btn {
+  background: rgba(255,255,255,0.15);
+  color: #625050;
+  opacity: 0.7;
+  border: 1px solid #6250507e;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 16px;
+  transition: all 0.2s;
+}
+.edit-header-btn:hover {
+  background: rgba(255, 255, 255, 0.682);
+  border-color: #625050
+}
 
 .profile-content {
   max-width: 400px;
@@ -452,6 +668,113 @@ function confirmLogout() {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
 }
 
+.edit-modal-card {
+  max-width: 380px;
+  width: 100%;
+  border-radius: 24px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+}
+
+.btn-close-modal {
+  background: rgba(98, 80, 80, 0.1);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #625050;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-close-modal:hover { background: rgba(98, 80, 80, 0.2); }
+
+.edit-tabs {
+  background: rgba(98, 80, 80, 0.08);
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.edit-tab-btn {
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #625050;
+  padding: 8px 12px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.edit-tab-btn.active {
+  background: #ffffff;
+  color: #292CA8;
+  box-shadow: 0 2px 8px rgba(41, 44, 165, 0.12);
+}
+.edit-tab-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.edit-field-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #625050;
+  opacity: 0.7;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.edit-input {
+  background: rgba(255,255,255,0.8) !important;
+  border: 1px solid rgba(98, 80, 80, 0.2) !important;
+  border-radius: 12px !important;
+  font-size: 15px;
+  color: #3b1c1c;
+  height: 46px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.edit-input:focus {
+  border-color: #292CA8 !important;
+  box-shadow: 0 0 0 3px rgba(41, 44, 165, 0.1) !important;
+  outline: none;
+}
+
+.save-btn {
+  background: #292CA8;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  height: 46px;
+  font-size: 15px;
+  transition: background 0.2s;
+}
+.save-btn:hover:not(:disabled) { background: #1e2080; color: #fff; }
+.save-btn:disabled { opacity: 0.6; }
+
+.alert-inline {
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 14px;
+}
+.alert-inline-danger {
+  background: rgba(192, 57, 43, 0.08);
+  color: #c0392b;
+  border: 1px solid rgba(192, 57, 43, 0.2);
+}
+.alert-inline-success {
+  background: rgba(46, 125, 50, 0.08);
+  color: #2e7d32;
+  border: 1px solid rgba(46, 125, 50, 0.2);
+}
+
 .warning-icon-wrapper {
   width: 64px;
   height: 64px;
@@ -477,6 +800,7 @@ function confirmLogout() {
   border: 1px solid rgba(98, 80, 80, 0.4);
   border-radius: 12px;
   font-weight: 600;
+  height: 46px;
   transition: all 0.2s ease;
 }
 

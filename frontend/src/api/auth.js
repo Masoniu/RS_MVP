@@ -17,7 +17,16 @@ export const authApi = {
   loginWithGoogle(token) {
     return api.post('/auth/google', { token })
   },
+
   linkGoogle(token) {
     return api.post('/auth/link-google', { token })
-  }
+  },
+
+  updateProfile(payload) {
+    return api.patch('/auth/profile', payload)
+  },
+
+  changePassword(payload) {
+    return api.post('/auth/change-password', payload)
+  },
 }

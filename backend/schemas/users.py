@@ -24,3 +24,11 @@ class Token(BaseModel):
 
 class TokenRefreshRequest(BaseModel):
     refresh_token: str
+
+class UpdateProfile(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+
+class ChangePassword(BaseModel):
+    current_password: str
+    new_password: str
