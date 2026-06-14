@@ -139,31 +139,33 @@ function formatDate(dateStr) {
                         <i class="fa-solid fa-plus me-2"></i> Створити кімнату
                     </button>
                 </div>
-                <div class="rooms-sidebar w-100 mx-auto" style="max-width: 400px; max-height: 400px; overflow-y: auto;">
-                    <div v-if="roomsLoading" class="text-center py-3">
-                        <div class="spinner-border spinner-border-sm" style="color: #292CA8;"></div>
-                    </div>
+                <div class="rooms-sidebar w-100 mx-auto" style="max-width: 400px;">
+                    <p class="section-label mb-3">Активні прогулянки</p>
 
-                    <div v-else-if="activeRoomsList.length > 0" class="my-rooms-section">
-                        <p class="section-label mb-3">Мої прогулянки</p>
+                    <div class="rooms-sidebar w-100 mx-auto" style="max-height: 360px; overflow-y: auto;">
+                        <div v-if="roomsLoading" class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm" style="color: #292CA8;"></div>
+                        </div>
 
-                        <div
-                            v-for="room in activeRoomsList"
-                            :key="room.id"
-                            class="glass-box room-card d-flex align-items-center px-3 py-3 mb-3"
-                            @click="router.push(`/room/${room.id}`)"
-                        >
-                            <div class="room-icon me-3 icon-active">
-                                <i class="fa-solid fa-location-dot"></i>
+                        <div v-else-if="activeRoomsList.length > 0" class="my-rooms-section">
+
+                            <div
+                                v-for="room in activeRoomsList"
+                                :key="room.id"
+                                class="glass-box room-card d-flex align-items-center px-3 py-3 mb-3"
+                                @click="router.push(`/room/${room.id}`)"
+                            >
+                                <div class="room-icon me-3 icon-active">
+                                    <i class="fa-solid fa-location-dot"></i>
+                                </div>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="room-name fw-bold text-truncate">{{ room.name }}</div>
+                                    <div class="room-meta">{{ formatDate(room.created_at) }}</div>
+                                </div>
+                                <span class="room-badge ms-2 badge-active"></span>
                             </div>
-                            <div class="flex-grow-1 min-w-0">
-                                <div class="room-name fw-bold text-truncate">{{ room.name }}</div>
-                                <div class="room-meta">{{ formatDate(room.created_at) }}</div>
-                            </div>
-                            <span class="room-badge ms-2 badge-active"></span>
                         </div>
                     </div>
-                    
                 </div>
             </div>
         </div>
@@ -299,7 +301,7 @@ function formatDate(dateStr) {
     transition: all 0.3s ease;
     max-width: 400px;
 }
-.create-btn:hover { background-color: rgba(255, 255, 255, 0.8); }
+.create-btn:hover { background-color: #f9ecec8a; }
 
 .divider {
     display: flex;
@@ -342,12 +344,13 @@ function formatDate(dateStr) {
 }
 
 .section-label {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.8px;
     color: #625050;
     opacity: 0.7;
+    margin-top: 32px;
 }
 
 .room-card {
