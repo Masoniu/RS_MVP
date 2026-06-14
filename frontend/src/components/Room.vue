@@ -1336,7 +1336,7 @@ function goToProfile() {
     background-color: #62505019;
     border-color: #625050;
 }
-
+</style> <style>
 .rm-pulse-outer {
     width: 22px; height: 22px;
     border-radius: 50%;
