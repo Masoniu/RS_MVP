@@ -71,6 +71,7 @@ const routeError = ref('');
 const showExpandRadiusModal = ref(false);
 const isExpandingRadius = ref(false);
 const isSwiping = ref(false);
+const isRebuilding = ref(false);
 
 const budgetInput = ref('500');
 const radiusInput = ref('2');
@@ -164,7 +165,7 @@ async function loadRoom(silent = false) {
     room.value = data;
     members.value = data.members || [];
 
-    if (data.route && data.route.locations && data.route.locations.length > 0) {
+    if (data.route && data.route.locations && data.route.locations.length > 0 && !isRebuilding.value) {
         selectedLocations.value = data.route.locations;
         isSwiping.value = false;
         budgetInput.value = String(data.route.budget);
@@ -397,6 +398,7 @@ function drawMap() {
 
 async function resetRoute() {
     if (confirm('Ви впевнені, що хочете скинути поточний маршрут і створити новий?')) {
+        isRebuilding.value = true;
         selectedLocations.value = [];
         allCandidates.value = [];
         remainingBudget.value = 0;
@@ -433,6 +435,7 @@ async function onLocationSelected(place) {
     allCandidates.value = allCandidates.value.filter(c => c.osm_id !== place.osm_id);
 
     if (selectedLocations.value.length >= 3) {
+        isRebuilding.value = false;
         isSwiping.value = false;
         try {
             await roomsApi.saveRoute(roomId.value, {
