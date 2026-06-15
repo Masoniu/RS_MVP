@@ -1,5 +1,18 @@
 <script setup>
+
+/**
+ * @file Root component of the application (App.vue).
+ * Responsible for rendering matching views via the router-view and 
+ * displaying a global full-screen overlay loader if the backend server is sleeping.
+ */
+
 import { isServerWakingUp } from './api/client';
+
+/**
+ * @description Reactive state imported from the API client indicating 
+ * whether the backend server is undergoing a "cold start" (waking up).
+ * @type {import('vue').Ref<boolean>}
+ */
 </script>
 
 <template>
@@ -22,6 +35,7 @@ import { isServerWakingUp } from './api/client';
 </template>
 
 <style scoped>
+/* Scoped CSS styling for background blur, glassmorphism modal card, and entry animations */
 .global-loader-overlay {
   position: fixed;
   top: 0;
@@ -31,7 +45,7 @@ import { isServerWakingUp } from './api/client';
   background: rgba(98, 80, 80, 0.4);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  z-index: 9999; /* Поверх усього сайту */
+  z-index: 9999;
 }
 
 .glass-loader-card {

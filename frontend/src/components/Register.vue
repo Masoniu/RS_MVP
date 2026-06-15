@@ -1,26 +1,87 @@
 <script setup>
+/**
+ * @file Register.vue
+ * @description Account Registration component. Manages form validations, 
+ * secure user profile creation, and automated pipeline onboarding that 
+ * logs the user into the application immediately after successful registration.
+ */
+
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 
+/**
+ * Core application router engine driver used for view transitions.
+ * @constant {Object} router
+ */
 const router = useRouter();
+
+/**
+ * Central identity profile authentication store context.
+ * @constant {Object} authStore
+ */
 const authStore = useAuthStore();
 
+/**
+ * Bound reactive textual field capturing the user's full display name.
+ * @type {import('vue').Ref<string>}
+ */
 const name = ref('');
+
+/**
+ * Bound reactive textual field capturing the user's targeted email address.
+ * @type {import('vue').Ref<string>}
+ */
 const email = ref('');
+
+/**
+ * Bound reactive textual field capturing the primary secret password character string.
+ * @type {import('vue').Ref<string>}
+ */
 const password = ref('');
+
+/**
+ * Bound reactive textual field capturing the verification password to confirm consistency.
+ * @type {import('vue').Ref<string>}
+ */
 const confirmPassword = ref('');
+
+/**
+ * Validation tracking flag indicating whether the registration submittal has been triggered.
+ * Used to conditionally toggle error styling hooks or validation borders.
+ * @type {import('vue').Ref<boolean>}
+ */
 const isSubmitted = ref(false);
+
+/**
+ * Text contextual message body holding operational error details caught during validation or database insertion.
+ * @type {import('vue').Ref<string>}
+ */
 const errorMessage = ref('');
+
+/**
+ * Network state loading indicator displaying template spinner wheels and locking down input interfaces.
+ * @type {import('vue').Ref<boolean>}
+ */
 const isLoading = ref(false);
 
+/**
+ * Validates input parameters, creates the user account, and logs them in.
+ * Checks for missing fields and mismatched passwords before dispatching API calls.
+ * * @async
+ * @function handleRegister
+ * @returns {Promise<void>} Resolves once credentials persist, sessions initialize, or exceptions catch.
+ */
 const handleRegister = async () => {
   isSubmitted.value = true;
   errorMessage.value = '';
 
+  // Completeness Validation: Exit early if any input field is completely blank
   if (!name.value || !email.value || !password.value || !confirmPassword.value) {
     return;
   }
+  
+  //Consistency Validation: Ensure confirmation characters perfectly match the primary password
   if (password.value !== confirmPassword.value) {
     errorMessage.value = 'Паролі не збігаються';
     return;
@@ -28,8 +89,13 @@ const handleRegister = async () => {
 
   isLoading.value = true;
   try {
+    //Dispatch account generation sequence to central Pinia auth store
     await authStore.register(email.value, password.value, name.value);
+    
+    //On successful creation, immediately trigger automated sign-in loop
     await authStore.login(email.value, password.value);
+    
+    //Route validated session focus directly into primary workspace dashboard
     router.push('/lobby');
   } catch (error) {
     console.error(error);

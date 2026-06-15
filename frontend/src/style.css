@@ -1,13 +1,21 @@
+/**
+ * @file Global Application Stylesheet.
+ * Imports external font assets, defines application design tokens via CSS variables, 
+ * disables default scrollbar visuals, and paints an elaborate layered radial background.
+ */
+
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500&display=swap");
 
 :root {
-  --bg-main: #fcfcfe;
-  --color-primary: #292ca5;
-  --color-text: #625050;
-  --color-accent: #646dd2;
-  --color-input-focus: #292ca5;
+  /* Design System Token Color Palette */
+  --bg-main: #fcfcfe;            /* Primary application canvas background */
+  --color-primary: #292ca5;       /* Main branding identity color */
+  --color-text: #625050;          /* Global textual body typography color (Muted brown tone) */
+  --color-accent: #646dd2;        /* Decorative accents and active state component highlighting */
+  --color-input-focus: #292ca5;   /* Active border color when input fields capture focus */
 }
 
+/* Hide native default browser scrollbars for Webkit engines (Chrome, Safari, Edge) */
 ::-webkit-scrollbar {
   display: none;
 }
@@ -17,6 +25,7 @@ body {
   scrollbar-width: none; /* Firefox */
 }
 
+/* Base structural setups for body and html elements featuring a multi-layered fixed radial gradient background */
 body,
 html {
   margin: 0;

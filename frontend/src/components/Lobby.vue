@@ -1,36 +1,108 @@
 <script setup>
+/**
+ * @file Lobby.vue
+ * @description Core dashboard/lobby view component of the application. 
+ * Provides an entry hub interface allowing authenticated users to input unique codes 
+ * to join rooms, navigate to session generation, and view scrolling feeds tracking 
+ * active trip workspaces.
+ */
+
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { roomsApi } from '../api/rooms';
 
+/**
+ * Core application router engine driver used for view transitions.
+ * @constant {Object} router
+ */
 const router = useRouter();
+
+/**
+ * Central identity profile authentication store context.
+ * @constant {Object} authStore
+ */
 const authStore = useAuthStore();
 
+/**
+ * Derives a human-readable display string from store credentials.
+ * Falls back to extracting email prefixes or a generic greeting default.
+ * @type {import('vue').ComputedRef<string>}
+ */
 const userName = computed(() => authStore.user?.name || authStore.user?.email?.split('@')[0] || 'Друже');
+
+/**
+ * Evaluates the authenticated profile instance context to derive active avatar media elements.
+ * @type {import('vue').ComputedRef<string|null>}
+ */
 const currentUserAvatar = computed(() => authStore.user?.avatar);
 
+/**
+ * Bound reactive textual field capturing alphanumeric string characters submitted to join an explicit room.
+ * @type {import('vue').Ref<string>}
+ */
 const inviteCode = ref('');
+
+/**
+ * Text contextual message body holding operational error details caught during room registration requests.
+ * @type {import('vue').Ref<string>}
+ */
 const joinError = ref('');
+
+/**
+ * Network state loading indicator displaying template spinner wheels and locking down input interfaces during joining actions.
+ * @type {import('vue').Ref<boolean>}
+ */
 const joinLoading = ref(false);
 
+/**
+ * Collection index capturing all operational room entities linked to the active profile account.
+ * @type {import('vue').Ref<Array<Object>>}
+ */
 const myRooms = ref([]);
+
+/**
+ * Structural loading tracker displaying shell components while rooms load asynchronously.
+ * @type {import('vue').Ref<boolean>}
+ */
 const roomsLoading = ref(false);
 
+/**
+ * Computes a filtered list containing only room entries possessing an active state status.
+ * @type {import('vue').ComputedRef<Array<Object>>}
+ */
 const activeRoomsList = computed(() => myRooms.value.filter((r) => r.status === 'active'));
 
+/**
+ * Evaluates the localized room collection index to match and return the first matching active room entity node.
+ * @type {import('vue').ComputedRef<Object|null>}
+ */
 const activeRoom = computed(() =>
   myRooms.value.find((r) => r.status === 'active') || null
 );
 
+/**
+ * Computes a filtered list containing archived room entries possessing a finished status flag.
+ * @type {import('vue').ComputedRef<Array<Object>>}
+ */
 const finishedRooms = computed(() =>
   myRooms.value.filter((r) => r.status === 'finished')
 );
 
+/**
+ * Standard lifecycle execution listener parsing database records automatically upon component mounting layout structures.
+ */
 onMounted(async () => {
   await loadMyRooms();
 });
 
+/**
+ * Dispatches an asynchronous API call retrieving rooms linked to the active user.
+ * Syncs the active room instance tracking index with browser local storage keys.
+ * * @async
+ * @function loadMyRooms
+ * @returns {Promise<void>} Resolves once state arrays map or API executions finish.
+ */
 async function loadMyRooms() {
   roomsLoading.value = true;
   try {
@@ -48,6 +120,13 @@ async function loadMyRooms() {
   }
 }
 
+/**
+ * Validates formatting variables and submits an invitation code verification check.
+ * On success, logs target active identity IDs locally and routes focus into the room.
+ * * @async
+ * @function joinRoom
+ * @returns {Promise<void>} Resolves once interface state processes finalize.
+ */
 async function joinRoom() {
   if (!inviteCode.value.trim()) return;
   joinLoading.value = true;
@@ -63,10 +142,21 @@ async function joinRoom() {
   }
 }
 
+/**
+ * Dispatches navigation requests redirecting operational interface windows to the personal User Profile page.
+ * @function goToProfile
+ */
 function goToProfile() {
   router.push('/profile');
 }
 
+/**
+ * Formats standard date-time string objects into readable calendar values matching localized standards.
+ * * @style Standard structure configuration example: "15 Jun"
+ * @function formatDate
+ * @param {string} dateStr - Raw date-time serialization format returned by backend endpoints.
+ * @returns {string} Formatted localized short textual calendar representation string.
+ */
 function formatDate(dateStr) {
   if (!dateStr) return '';
   return new Date(dateStr).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });

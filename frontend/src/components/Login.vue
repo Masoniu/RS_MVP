@@ -1,31 +1,89 @@
 <script setup>
+/**
+ * @file Login.vue
+ * @description Frontend login view component. Manages user authentication
+ * using standard Email/Password input forms or federated Google Sign-In Identity APIs.
+ */
 
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 
+/**
+ * Core application router engine driver used for view transitions.
+ * @constant {Object} router
+ */
 const router = useRouter();
+
+/**
+ * Central identity profile authentication store context.
+ * @constant {Object} authStore
+ */
 const authStore = useAuthStore();
 
+/**
+ * Bound reactive textual field capturing the user's input email address.
+ * @type {import('vue').Ref<string>}
+ */
 const email = ref('');
+
+/**
+ * Bound reactive textual field capturing the user's secret password string.
+ * @type {import('vue').Ref<string>}
+ */
 const password = ref('');
+
+/**
+ * Validation tracking flag indicating whether the login button has been clicked.
+ * Used to display red warning borders or validation messages.
+ * @type {import('vue').Ref<boolean>}
+ */
 const isSubmitted = ref(false);
+
+/**
+ * Text message body holding error details caught during form validation or network requests.
+ * @type {import('vue').Ref<string>}
+ */
 const errorMessage = ref('');
+
+/**
+ * Loading state indicator for the Google Sign-In process. 
+ * Disables buttons and shows spinning wheel indicators when true.
+ * @type {import('vue').Ref<boolean>}
+ */
 const googleLoading = ref(false);
+
+/**
+ * Loading state indicator for the standard Email/Password authentication request.
+ * @type {import('vue').Ref<boolean>}
+ */
 const isLoading = ref(false);
 
+/**
+ * The unique Google API Credentials Client ID fetched from environment variables.
+ * @constant {string|undefined} GOOGLE_CLIENT_ID
+ */
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
+/**
+ * Validates credentials and attempts a standard Email/Password login.
+ * On success, routes the user directly to the application Lobby dashboard.
+ * * @async
+ * @function handleLogin
+ * @returns {Promise<void>} Resolves once validation checks finish or routing completes.
+ */
 const handleLogin = async () => {
   isSubmitted.value = true;
   errorMessage.value = '';
 
+  // Simple validation check: exit early if fields are completely blank
   if (!email.value || !password.value) {
     return;
   }
 
   isLoading.value = true;
   try {
+    // Send form data to the central Pinia store authentication logic
     await authStore.login(email.value, password.value);
     router.push('/lobby');
   } catch (error) {
@@ -36,12 +94,22 @@ const handleLogin = async () => {
   }
 };
 
+/**
+ * Processes the secure ID token returned from Google's native popup framework.
+ * Passes the credential string to the backend to authenticate or log in the user.
+ * * @async
+ * @function handleGoogleLogin
+ * @param {Object} response - The raw credential response object emitted by the Google API.
+ * @param {string} response.credential - The secure JSON Web Token (JWT) provided by Google.
+ * @returns {Promise<void>} Resolves when the social login handshake completes.
+ */
 const handleGoogleLogin = async (response) => {
   googleLoading.value = true;
   errorMessage.value = '';
 
   try {
     const { credential } = response;
+    // Authenticate with backend using the Google token string
     await authStore.loginWithGoogle(credential);
     router.push('/lobby');
   } catch (error) {
@@ -52,13 +120,21 @@ const handleGoogleLogin = async (response) => {
   }
 };
 
-// Initialize Google Sign-In
+/**
+ * Vue layout mounting listener. 
+ * Automatically initializes Google's Identity services and renders the official 
+ * visual Google Sign-In branding button once the DOM tree has successfully loaded.
+ */
 onMounted(() => {
+  // Ensure both the global script window.google and your Client ID token exist before configuring
   if (window.google && GOOGLE_CLIENT_ID) {
+    // 1. Initialize the Google JavaScript identity client framework library instance
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
-      callback: handleGoogleLogin,
+      callback: handleGoogleLogin, // Assigns target interceptor method for response handles
     });
+    
+    // 2. Render the custom styled Google Button inside the container targeting matching IDs
     window.google.accounts.id.renderButton(
       document.getElementById('google-button-container'),
       { theme: 'outline', size: 'large', width: '320' }

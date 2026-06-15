@@ -1,18 +1,65 @@
 <script setup>
+/**
+ * @file CreatingRoom.vue
+ * @description Frontend Single File Component providing an interface to initialize and spawn 
+ * a new walk session workspace (room). Handles layout styling overlays, character metrics, 
+ * input validations, and error parsing states.
+ */
+
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { roomsApi } from '../api/rooms';
 import { useAuthStore } from '../stores/auth';
 
+/**
+ * Core application router engine driver used for view transitions.
+ * @constant {Object} router
+ */
 const router = useRouter();
+
+/**
+ * Central identity profile authentication store context.
+ * @constant {Object} authStore
+ */
 const authStore = useAuthStore();
 
+/**
+ * Bound reactive textual field representing the user's customized title name string for the session.
+ * @type {import('vue').Ref<string>}
+ */
 const roomName = ref('');
+
+/**
+ * Validation tracking state indicating whether the creation submission form has been triggered.
+ * @type {import('vue').Ref<boolean>}
+ */
 const isSubmitted = ref(false);
+
+/**
+ * Text contextual message body holding operational error details caught during backend queries.
+ * @type {import('vue').Ref<string>}
+ */
 const errorMessage = ref('');
+
+/**
+ * Network state loading indicator displaying template spinner wheels and locking down input interfaces.
+ * @type {import('vue').Ref<boolean>}
+ */
 const isLoading = ref(false);
+
+/**
+ * Evaluates the authenticated profile instance context to derive active avatar media elements.
+ * @type {import('vue').ComputedRef<string|null>}
+ */
 const currentUserAvatar = computed(() => authStore.user?.avatar);
 
+/**
+ * Validates form parameters and fires an administrative API request to spawn a workspace room instance.
+ * Updates local cache parameters and moves focus routes onto the newly constructed dashboard view.
+ * * @async
+ * @function handleCreate
+ * @returns {Promise<void>} Resolves once navigation routes change or backend exceptions handle.
+ */
 async function handleCreate() {
   isSubmitted.value = true;
   errorMessage.value = '';
@@ -21,6 +68,7 @@ async function handleCreate() {
 
   isLoading.value = true;
   try {
+    /** @constant {Object} response - API creation response structure containing room descriptors. */
     const { data } = await roomsApi.createRoom(roomName.value.trim());
     localStorage.setItem('active_room_id', data.id);
     router.push(`/room/${data.id}`);
@@ -31,10 +79,18 @@ async function handleCreate() {
   }
 }
 
+/**
+ * Dispatches navigation requests redirecting operational interface windows to the personal User Profile page.
+ * @function goToProfile
+ */
 function goToProfile() {
   router.push('/profile');
 }
 
+/**
+ * Triggers structural layout routing shifts returning active windows back to the primary Main Lobby page.
+ * @function leaveRoom
+ */
 const leaveRoom = () => {
   router.push('/lobby');
 }

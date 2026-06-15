@@ -1,6 +1,29 @@
 <script setup>
+/**
+ * @file LocationCard.vue
+ * @description Interactive card swipe interface for location selection. 
+ * Orchestrates touch/mouse drag gestures, state-based card transitions, 
+ * and dynamic Leaflet mini-map rendering to visualize planned routes.
+ */
+
 import { ref, watch, nextTick, onBeforeUnmount, computed } from 'vue';
 
+/**
+ * @typedef {Object} Location
+ * @property {string|number} osm_id - OpenStreetMap unique identifier.
+ * @property {number} lat - Latitude coordinate.
+ * @property {number} lon - Longitude coordinate.
+ */
+
+/**
+ * @typedef {Object} Props
+ * @property {Array<Location>} locations - List of available candidate locations.
+ * @property {number} remainingBudget - User's remaining monetary budget for the trip.
+ * @property {Object} userLocation - The starting coordinates for the current trip.
+ * @property {Array<Location>} previousLocations - Historical path nodes already selected.
+ * @property {boolean} isFinished - Flag indicating if the current session is locked.
+ * @property {boolean} isExpanding - Status of the data expansion request process.
+ */
 const props = defineProps({
     locations: { type: Array, required: true },
     remainingBudget: { type: Number, required: true },
@@ -12,23 +35,60 @@ const props = defineProps({
 
 const emit = defineEmits(['choiceMade', 'askExpand']);
 
+/** * Computes total number of successfully selected location nodes.
+ * @type {import('vue').ComputedRef<number>} 
+ */
 const likedCount = computed(() => props.previousLocations.length);
 
+/** * Internal reactive list representing the swipe queue of location candidates.
+ * @type {import('vue').Ref<Array<Location>>} 
+ */
 const places = ref([]);
+
+/** * Tracks skips in a single cycle to trigger expansion prompts when the list is exhausted.
+ * @type {import('vue').Ref<number>} 
+ */
 const swipesInCurrentCycle = ref(0);
 
+/** * Directional animation state ('left'/'right') during the card flight transition.
+ * @type {import('vue').Ref<string|null>} 
+ */
 const flyDirection = ref(null);
+
+/**
+ * Boolean flag tracking active pointer/mouse drag movements.
+ * @type {import('vue').Ref<boolean>}
+ */
 const isDragging = ref(false);
+
+/**
+ * Tracks the initial horizontal starting coordinate of a drag event.
+ * @type {import('vue').Ref<number>}
+ */
 const startX = ref(0);
+
+/**
+ * Tracks horizontal offset distance during touch or mouse dragging.
+ * @type {import('vue').Ref<number>}
+ */
 const offsetX = ref(0);
 
+/** * Reference to the current Leaflet map instance for cleanup purposes.
+ * @type {import('leaflet').Map|null} 
+ */
 let miniMapInstance = null;
 
+/**
+ * Initializes and draws the Leaflet mini-map inside a dynamically generated ID container.
+ * Renders the route from the starting user location through previously selected points to the current card.
+ * @function drawMiniMap
+ */
 const drawMiniMap = () => {
     if (places.value.length === 0 || typeof window === 'undefined' || !window.L) return;
     const place = places.value[0];
 
     nextTick(() => {
+        /** @constant {string} safeId - Sanitized unique ID string to ensure valid DOM element targeting. */
         const safeId = `mini-map-${place.osm_id.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
         const mapEl = document.getElementById(safeId);
 
@@ -38,6 +98,8 @@ const drawMiniMap = () => {
             miniMapInstance.remove();
             miniMapInstance = null;
         }
+        
+        // Initialize Map in static non-interactive mode
         miniMapInstance = window.L.map(mapEl, {
             zoomControl: false, dragging: false, scrollWheelZoom: false,
             doubleClickZoom: false, touchZoom: false
@@ -45,6 +107,7 @@ const drawMiniMap = () => {
 
         window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMapInstance);
 
+        /** @type {Array<import('leaflet').LatLng>} waypoints - Path markers for route generation. */
         const waypoints = [];
 
         if (props.userLocation && props.userLocation.lat) {
@@ -57,6 +120,7 @@ const drawMiniMap = () => {
 
         waypoints.push(window.L.latLng(place.lat, place.lon));
 
+        // Use Leaflet Routing Machine to paint lines
         if (waypoints.length > 1) {
             window.L.Routing.control({
                 waypoints: waypoints,
@@ -71,12 +135,14 @@ const drawMiniMap = () => {
     });
 };
 
+// Reactively merge new location props into the queue while preserving existing items
 watch(() => props.locations, (newVal) => {
     const newItems = newVal.filter(n => !places.value.some(p => p.osm_id === n.osm_id));
     const existingItems = places.value.filter(p => newVal.some(n => n.osm_id === p.osm_id));
     places.value = [...existingItems, ...newItems];
 }, { immediate: true, deep: true });
 
+// Redraw map whenever the primary card node changes
 watch(() => places.value[0], () => {
     setTimeout(drawMiniMap, 150);
 }, { immediate: true });
@@ -85,6 +151,10 @@ onBeforeUnmount(() => {
     if (miniMapInstance) miniMapInstance.remove();
 });
 
+/**
+ * Processes user choice (like/skip). Handles state shifts and emits events to parent controller.
+ * @param {boolean} isLiked - True if the user swiped right (add location), False for left (skip).
+ */
 const handleChoice = (isLiked) => {
     if (places.value.length === 0 || flyDirection.value || props.isFinished) return;
     const currentPlace = places.value[0];
@@ -97,10 +167,12 @@ const handleChoice = (isLiked) => {
             swipesInCurrentCycle.value = 0;
             emit('choiceMade', currentPlace);
         } else {
+            // Re-queue the skipped item to end of list
             const skipped = places.value.shift();
             places.value.push(skipped);
             swipesInCurrentCycle.value++;
 
+            // Trigger expansion if user has skipped the entire current pool
             if (swipesInCurrentCycle.value >= places.value.length && places.value.length > 0) {
                 emit('askExpand');
                 swipesInCurrentCycle.value = 0;
@@ -111,22 +183,42 @@ const handleChoice = (isLiked) => {
     }, 300);
 };
 
+/**
+ * Captures initial spatial tracking metrics when pointer drag initiates.
+ * @function startDrag
+ * @param {MouseEvent|TouchEvent} event - System interaction input action payload event object.
+ * @returns {void}
+ */
 const startDrag = (event) => {
     if (places.value.length === 0 || flyDirection.value) return;
     isDragging.value = true;
     startX.value = event.type.includes('mouse') ? event.pageX : event.touches[0].clientX;
 };
 
+/**
+ * Computes horizontal drag offset distance continuously as pointer moves.
+ * @function onDrag
+ * @param {MouseEvent|TouchEvent} event - System interaction spatial movement event object.
+ * @returns {void}
+ */
 const onDrag = (event) => {
     if (!isDragging.value) return;
     const currentX = event.type.includes('mouse') ? event.pageX : event.touches[0].clientX;
     offsetX.value = currentX - startX.value;
 };
 
+/**
+ * Evaluates accumulated offset distance thresholds when dragging ends 
+ * to trigger choice confirmations.
+ * @function endDrag
+ * @returns {void}
+ */
 const endDrag = () => {
     if (!isDragging.value) return;
     isDragging.value = false;
+    /** @constant {number} threshold - Movement trigger threshold tolerance value. */
     const threshold = 100;
+    
     if (offsetX.value > threshold) handleChoice(true);
     else if (offsetX.value < -threshold) handleChoice(false);
     else requestAnimationFrame(() => offsetX.value = 0);

@@ -1,4 +1,11 @@
 <script setup>
+/**
+ * @file RoomView.vue
+ * @description Master Workspace Controller Component. Orchestrates live telemetry synchronization,
+ * continuous real-time pooling feeds, dynamic Leaflet routing and location map generation,
+ * budget boundary enforcement variables, and comprehensive multi-party shared bill calculations.
+ */
+
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
@@ -6,51 +13,198 @@ import { roomsApi } from '../api/rooms';
 import { expensesApi } from '../api/expenses';
 import LocationCards from '../components/LocationCards.vue';
 
+/**
+ * Core application router engine driver used for view transitions.
+ * @constant {Object} router
+ */
 const router = useRouter();
+
+/**
+ * Active application view route state observer used to extract path subparameters.
+ * @constant {Object} route
+ */
 const route = useRoute();
+
+/**
+ * Central identity profile authentication store context.
+ * @constant {Object} authStore
+ */
 const authStore = useAuthStore();
 
+/**
+ * The unique database ID matching the current active room entity node, extracted from the URL.
+ * @type {import('vue').ComputedRef<number>}
+ */
 const roomId = computed(() => parseInt(route.params.id));
+
+/**
+ * Evaluates the authenticated profile instance context to derive active avatar media elements.
+ * @type {import('vue').ComputedRef<string|null>}
+ */
 const currentUserAvatar = computed(() => authStore.user?.avatar);
 
+/**
+ * Array holding all initial map candidate coordinates parsed within selected parameters.
+ * @type {import('vue').Ref<Array<Object>>}
+ */
 const allCandidates = ref([]);
+
+/**
+ * Validated selection chain index containing specific target points approved via swipe.
+ * @type {import('vue').Ref<Array<Object>>}
+ */
 const selectedLocations = ref([]);
+
+/**
+ * Tracks the absolute available balance ceiling left for card pool distribution.
+ * @type {import('vue').Ref<number>}
+ */
 const remainingBudget = ref(0);
+
+/**
+ * Interval clock tracker driving background server queries to sync room updates.
+ * @type {any} pollingInterval
+ */
 let pollingInterval = null;
 
+/**
+ * Computes location candidates that fall within the remaining budget constraints.
+ * @type {import('vue').ComputedRef<Array<Object>>}
+ */
 const affordableCandidates = computed(() => {
     return allCandidates.value.filter(place => (place.price || 0) <= remainingBudget.value);
 });
 
+/**
+ * Main structural data schema holding specifications for the active room context node.
+ * @type {import('vue').Ref<Object|null>}
+ */
 const room = ref(null);
+
+/**
+ * Managed index of all user entities currently joined inside the active room context.
+ * @type {import('vue').Ref<Array<Object>>}
+ */
 const members = ref([]);
+
+/**
+ * Blocking indicator showing shell skeletons during primary application network setups.
+ * @type {import('vue').Ref<boolean>}
+ */
 const loading = ref(true);
+
+/**
+ * Text holding system failure details caught during database retrieval attempts.
+ * @type {import('vue').Ref<string>}
+ */
 const error = ref('');
 
+/**
+ * Access unique internal identifier assigned to the current active user record.
+ * @type {import('vue').ComputedRef<number|undefined>}
+ */
 const currentUserId = computed(() => authStore.user?.id);
+
+/**
+ * Verification flag assessing if the local user possesses host ownership credentials.
+ * @type {import('vue').ComputedRef<boolean>}
+ */
 const isHost = computed(() => room.value?.creator_id === currentUserId.value);
+
+/**
+ * Conditional check analyzing if the workspace room has been archived and finalized.
+ * @type {import('vue').ComputedRef<boolean>}
+ */
 const isFinished = computed(() => room.value?.status === 'finished');
+
+/**
+ * Unique text code generated for inviting other users into the active workspace.
+ * @type {import('vue').ComputedRef<string>}
+ */
 const roomCode = computed(() => room.value?.invite_code || '');
 
+/**
+ * Array capturing all bill objects added to the active room.
+ * @type {import('vue').Ref<Array<Object>>}
+ */
 const expenses = ref([]);
+
+/**
+ * Map reflecting total accumulated credit/debit margins assigned to separate individual members.
+ * @type {import('vue').Ref<Object>}
+ */
 const balances = ref({});
+
+/**
+ * Flattened ledger arrays matching specific debt offset links between users once closed out.
+ * @type {import('vue').Ref<Array<Object>>}
+ */
 const settlements = ref([]);
+
+/**
+ * Loading state flag used to lock bill list views during computation changes.
+ * @type {import('vue').Ref<boolean>}
+ */
 const expensesLoading = ref(false);
 
+/**
+ * UI visual toggle flag managing visibility of the operational billing receipt form.
+ * @type {import('vue').Ref<boolean>}
+ */
 const showExpenseForm = ref(false);
+
+/**
+ * Form field reference holding details for a new bill entry draft.
+ * @type {import('vue').Ref<Object>}
+ */
 const newExpense = ref({ description: '', amount: '', payerId: '', splitBetween: [] });
+
+/**
+ * Text string detailing bill creation input validation failures.
+ * @type {import('vue').Ref<string>}
+ */
 const expenseError = ref('');
+
+/**
+ * Input loader state locking input fields while processing financial submittals.
+ * @type {import('vue').Ref<boolean>}
+ */
 const expenseSubmitting = ref(false);
 
+/**
+ * Reference caching the specific row ID value scheduled for database deletion requests.
+ * @type {import('vue').Ref<number|null>}
+ */
 const deletingExpenseId = ref(null);
+
+/**
+ * Layout toggle rendering approval modal warning screens when removing expenses.
+ * @type {import('vue').Ref<boolean>}
+ */
 const showDeleteModal = ref(false);
+
+/**
+ * Object snapshot identifying the selected item targeted for transactional erasure.
+ * @type {import('vue').Ref<Object|null>}
+ */
 const expenseToDelete = ref(null);
 
+/**
+ * Caches target billing items and initializes structural delete confirmation modules.
+ * @function promptDeleteExpense
+ * @param {Object} exp - Target bill data schema row selected for removal.
+ */
 function promptDeleteExpense(exp) {
     expenseToDelete.value = exp;
     showDeleteModal.value = true;
 }
 
+/**
+ * Initiates transactional removal requests to securely eliminate an expense row tracking entry.
+ * * @async
+ * @function confirmDeleteExpense
+ * @returns {Promise<void>} Resolves once state lists sync or error blocks capture exceptions.
+ */
 async function confirmDeleteExpense() {
     if (!expenseToDelete.value) return;
     deletingExpenseId.value = expenseToDelete.value.id;
@@ -78,6 +232,11 @@ const radiusInput = ref('2');
 const budgetError = ref('');
 const radiusError = ref('');
 
+/**
+ * Validates financial form range constraints for proposed budget ceilings.
+ * @function validateBudget
+ * @returns {boolean} Outcome indicator confirming if parameters pass system formatting criteria.
+ */
 function validateBudget() {
     const val = parseFloat(budgetInput.value);
     if (!budgetInput.value || isNaN(val)) { budgetError.value = 'Введіть суму'; return false; }
@@ -87,6 +246,11 @@ function validateBudget() {
     return true;
 }
 
+/**
+ * Validates travel radius parameters against predefined geographical search boundaries.
+ * @function validateRadius
+ * @returns {boolean} True if the radius constraints align with valid scale limits.
+ */
 function validateRadius() {
     const val = parseFloat(radiusInput.value);
     if (!radiusInput.value || isNaN(val)) { radiusError.value = 'Введіть радіус'; return false; }
@@ -96,11 +260,15 @@ function validateRadius() {
     return true;
 }
 
+/** * User location latitude coordinate tracking variable. @type {import('vue').Ref<number|null>} */
 const userLat = ref(null);
+/** * User location longitude coordinate tracking variable. @type {import('vue').Ref<number|null>} */
 const userLon = ref(null);
 
+/** * Tracks the active dashboard viewing context window pane option string. @type {import('vue').Ref<string>} */
 const activeTab = ref('participants');
 
+// Handles redraw triggers whenever navigating structural views onto the Leaflet map panel
 watch(activeTab, (newTab) => {
     if (newTab === 'map' && selectedLocations.value.length >= 3 && !isSwiping.value) {
         setTimeout(drawMap, 500);
@@ -110,6 +278,10 @@ watch(activeTab, (newTab) => {
 const showHeader = ref(true);
 let lastScrollPosition = 0;
 
+/**
+ * Evaluates scrolling shifts to dynamically toggle the header view space for mobile formats.
+ * @function handleScroll
+ */
 const handleScroll = () => {
     const currentScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
     if (currentScrollPosition <= 0) {
@@ -123,6 +295,10 @@ const handleScroll = () => {
     lastScrollPosition = currentScrollPosition;
 };
 
+/**
+ * Core lifecycle setup hook. Configures scroll interaction observers, fetches foundational room logs,
+ * spins up long-polling data loops, and requests the user's current GPS position coordinates.
+ */
 onMounted(async () => {
     window.addEventListener('scroll', handleScroll);
     await loadRoom();
@@ -137,6 +313,10 @@ onMounted(async () => {
     );
 });
 
+/**
+ * Cleanup lifecycle hook. Dismantles event listener chains, clears polling intervals, 
+ * disconnects active GPS tracking watches, and safely unmounts any remaining Leaflet map layers.
+ */
 onUnmounted(() => {
     window.removeEventListener('scroll', handleScroll);
 
@@ -157,6 +337,14 @@ onUnmounted(() => {
     }
 });
 
+/**
+ * Fetches updated server configurations detailing current member mappings, active routing profiles,
+ * and accounting structures.
+ * * @async
+ * @function loadRoom
+ * @param {boolean} [silent=false] - When true, suppresses loading indicator spinners during background polling.
+ * @returns {Promise<void>}
+ */
 async function loadRoom(silent = false) {
   if (!silent) loading.value = true;
   error.value = '';
@@ -186,10 +374,20 @@ async function loadRoom(silent = false) {
   }
 }
 
+/**
+ * Toggles visibility flags to display the search radius adjustment panel.
+ * @function promptExpandRadius
+ */
 function promptExpandRadius() {
     showExpandRadiusModal.value = true;
 }
 
+/**
+ * Increments scanning parameters by a 2km margin and polls the server for more location candidates.
+ * * @async
+ * @function onExpandRadius
+ * @returns {Promise<void>}
+ */
 async function onExpandRadius() {
     showExpandRadiusModal.value = false;
     isExpandingRadius.value = true;
@@ -218,6 +416,14 @@ async function onExpandRadius() {
     }
 }
 
+/**
+ * Dispatches concurrent requests to pull and update individual accounting ledgers, balances, 
+ * and debt configurations for the active room context.
+ * * @async
+ * @function loadExpensesAndBalances
+ * @param {boolean} [silent=false] - True ignores UI spinner switches during background runs.
+ * @returns {Promise<void>}
+ */
 async function loadExpensesAndBalances(silent = false) {
   if (!silent) expensesLoading.value = true;
   try {
@@ -238,6 +444,12 @@ async function loadExpensesAndBalances(silent = false) {
   }
 }
 
+/**
+ * Validates parameters and calls spatial location indices to compile a randomized swipe queue pool.
+ * * @async
+ * @function generateRoute
+ * @returns {Promise<void>}
+ */
 async function generateRoute() {
     if (!validateBudget() || !validateRadius()) return;
     routeLoading.value = true;
@@ -262,16 +474,31 @@ async function generateRoute() {
     }
 }
 
+/** * @type {import('leaflet').Map|null} */
 let leafletMap = null;
+/** * @type {any} */
 let leafletRouting = null;
+/** * @type {number|null} */
 let mapWatchId = null;
+/** * @type {import('leaflet').Marker|null} */
 let mapUserMarker = null;
+/** * @type {import('leaflet').Circle|null} */
 let mapAccuracyCircle = null;
 
+/**
+ * Maps short systemic codes to display text.
+ * @function categoryLabel
+ * @param {string} cat - System code identifier string.
+ * @returns {string} Human-readable translation.
+ */
 function categoryLabel(cat) {
     return cat === 'park' ? 'Парк' : cat === 'museum' ? 'Музей' : 'Кафе';
 }
 
+/**
+ * Safely disconnects persistent geolocation geolocation streams tracking live updates.
+ * @function stopMapWatch
+ */
 function stopMapWatch() {
     if (mapWatchId !== null) {
         navigator.geolocation.clearWatch(mapWatchId);
@@ -279,6 +506,13 @@ function stopMapWatch() {
     }
 }
 
+/**
+ * Refreshes or generates custom pulse elements tracking user position shifts across maps.
+ * @function updateMapUserMarker
+ * @param {number} lat - Current latitude coordinate.
+ * @param {number} lon - Current longitude coordinate.
+ * @param {number|null} accuracy - Signal tolerance accuracy radius in meters.
+ */
 function updateMapUserMarker(lat, lon, accuracy) {
     if (!leafletMap) return;
     if (mapUserMarker)     { leafletMap.removeLayer(mapUserMarker);     mapUserMarker = null; }
@@ -302,6 +536,11 @@ function updateMapUserMarker(lat, lon, accuracy) {
         .bindPopup(`<div class="rm-popup"><strong>Ви тут</strong></div>`, { closeButton: false });
 }
 
+/**
+ * Initializes the primary Leaflet map element. Draws paths between coordinates,
+ * customizes sequential numeric marker icons, and hooks live high-accuracy location tracking feeds.
+ * @function drawMap
+ */
 function drawMap() {
     nextTick(() => {
         const mapContainer = document.getElementById('route-map-container');
@@ -396,6 +635,12 @@ function drawMap() {
     });
 }
 
+/**
+ * Resets local state variables and clears active map instances to reinitialize card selection queues.
+ * * @async
+ * @function resetRoute
+ * @returns {Promise<void>}
+ */
 async function resetRoute() {
     if (confirm('Ви впевнені, що хочете скинути поточний маршрут і створити новий?')) {
         isRebuilding.value = true;
@@ -428,6 +673,13 @@ async function resetRoute() {
     }
 }
 
+/**
+ * Appends confirmed items to selections, deducts parameters, and posts completion payloads once 3 items compile.
+ * * @async
+ * @function onLocationSelected
+ * @param {Object} place - Location details dict packet swiped right.
+ * @returns {Promise<void>}
+ */
 async function onLocationSelected(place) {
     selectedLocations.value.push(place);
     remainingBudget.value -= place.price;
@@ -450,20 +702,37 @@ async function onLocationSelected(place) {
     }
 }
 
+/** * Computes total value sum combined across all compiled receipt lines. @type {import('vue').ComputedRef<number>} */
 const totalExpenses = computed(() =>
   expenses.value.reduce((sum, e) => sum + e.amount, 0)
 );
 
+/**
+ * Matches database primary reference identifiers against loaded member objects to pull user text names.
+ * @function getMemberName
+ * @param {number} userId - Targets database lookup key index.
+ * @returns {string} Name parameter matched, or a descriptive placeholder string format.
+ */
 function getMemberName(userId) {
   const m = members.value.find((m) => m.id === userId);
   return m ? m.name : `Користувач ${userId}`;
 }
 
+/**
+ * Retrieves the profile avatar image link for a specific participant.
+ * @function getMemberAvatar
+ * @param {number} userId - Targets database lookup key index.
+ * @returns {string|null} Avatar media link target url.
+ */
 function getMemberAvatar(userId) {
   const m = members.value.find((m) => m.id === userId);
   return m ? m.avatar_url : null;
 }
 
+/**
+ * Resets processing form inputs back to original baseline states.
+ * @function resetExpenseForm
+ */
 function resetExpenseForm() {
   newExpense.value = {
     description: '',
@@ -474,14 +743,27 @@ function resetExpenseForm() {
   expenseError.value = '';
 }
 
+/**
+ * Triggers state reset rules and exposes modal view panels matching creation processes.
+ * @function openExpenseForm
+ */
 function openExpenseForm() {
   resetExpenseForm();
   showExpenseForm.value = true;
 }
 
+/** * Maximum characters allowed inside validation strings. @constant {number} MAX_DESC */
 const MAX_DESC = 30;
+
+/** * Computes available typing capacity left on description form tags. @type {import('vue').ComputedRef<number>} */
 const descCharsLeft = computed(() => MAX_DESC - (newExpense.value.description?.length || 0));
 
+/**
+ * Audits submission formats and transmits compiled transaction detail maps to backend repositories.
+ * * @async
+ * @function submitExpense
+ * @returns {Promise<void>}
+ */
 async function submitExpense() {
   expenseError.value = '';
   if (!newExpense.value.description || !newExpense.value.amount) {
@@ -517,6 +799,11 @@ async function submitExpense() {
   }
 }
 
+/**
+ * Toggles an individual participant's involvement flag within a shared bill split.
+ * @function toggleSplitMember
+ * @param {number} memberId - Targets index criteria node identification parameters.
+ */
 function toggleSplitMember(memberId) {
   const idx = newExpense.value.splitBetween.indexOf(memberId);
   if (idx === -1) newExpense.value.splitBetween.push(memberId);
@@ -525,10 +812,17 @@ function toggleSplitMember(memberId) {
 
 const showFinishModal = ref(false);
 
+/** * Opens visibility settings checking final archival process requests. @function promptFinishRoom */
 const promptFinishRoom = () => {
     showFinishModal.value = true;
 };
 
+/**
+ * Finalizes and closes the active room, shifting its status to 'finished' and computing the final settlements.
+ * * @async
+ * @function confirmFinishRoom
+ * @returns {Promise<void>}
+ */
 async function confirmFinishRoom() {
     showFinishModal.value = false;
     try {
@@ -543,20 +837,33 @@ async function confirmFinishRoom() {
 
 const showLeaveModal = ref(false);
 
+/** * Visual shortcut exposing navigation safety modal confirmation dialogue boxes. @function leaveRoom */
 const leaveRoom = () => {
     showLeaveModal.value = true;
 }
 
+/**
+ * Safely removes room keys locally and returns tracking focus to standard user dashboard lobbies.
+ * @function confirmLeave
+ */
 const confirmLeave = () => {
     localStorage.removeItem('active_room_id');
     router.push('/lobby');
 };
 
+/**
+ * Copies the active text room invitation code token directly to user system clipboards.
+ * @function copyCode
+ */
 const copyCode = () => {
     navigator.clipboard.writeText(roomCode.value);
     console.log('Код скопійовано!');
 };
 
+/**
+ * Shifts core user navigation routes directly onto the profile view card.
+ * @function goToProfile
+ */
 function goToProfile() {
   router.push('/profile');
 }

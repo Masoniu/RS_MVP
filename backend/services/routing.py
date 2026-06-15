@@ -1,3 +1,16 @@
+"""
+File: services/routing.py
+
+Service for retrieving candidates to construct a walking route.
+
+Responsible for:
+- querying the Overpass API (OpenStreetMap) to search for nearby objects matching target coordinates
+- caching Overpass JSON responses into the `osm_cache` table (TTL — 24 hours)
+- executing network retry logic (3 attempts with exponential backoff delays)
+- parsing raw OpenStreetMap elements into categories: parks, museums, cafes/restaurants
+- appending accurate financial tracking criteria from `location_prices` (or falling back to defaults)
+"""
+
 import httpx
 import random
 import logging
@@ -12,7 +25,20 @@ logger = logging.getLogger(__name__)
 
 async def fetch_osm_data(lat: float, lon: float, radius_km: float, db: Session):
     """
-    Fetch OSM data from Overpass API with caching and retry logic
+    Fetches raw JSON data from Overpass API with a 3-attempt retry loop and 24h caching.
+
+    Args:
+        lat (float): Latitude (-90 to 90).
+        lon (float): Longitude (-180 to 180).
+        radius_km (float): Search radius in kilometers.
+        db (Session): Database session for cache operations.
+
+    Returns:
+        dict: Parsed Overpass API JSON response containing an "elements" list.
+
+    Raises:
+        HTTPException(400): Invalid coordinates.
+        HTTPException(502): API unavailable after 3 retries.
     """
     # Validate coordinates
     if not (-90 <= lat <= 90 and -180 <= lon <= 180):
@@ -21,6 +47,7 @@ async def fetch_osm_data(lat: float, lon: float, radius_km: float, db: Session):
             detail="Невірні координати широти/довготи"
         )
     
+    # Check database cache
     cache_key = f"osm_{lat}_{lon}_{radius_km}"
     cached = db.query(models.OSMCache).filter(models.OSMCache.cache_key == cache_key).first()
 
@@ -28,6 +55,7 @@ async def fetch_osm_data(lat: float, lon: float, radius_km: float, db: Session):
         logger.info(f"Cache hit for {cache_key}")
         return cached.response
 
+    # Prepare Overpass QL query
     radius_m = radius_km * 1000
 
     query = f"""
@@ -94,6 +122,7 @@ async def fetch_osm_data(lat: float, lon: float, radius_km: float, db: Session):
             detail=f"Сервіс Overpass API недоступний. Спробуйте ще раз пізніше. ({last_error[:50]})"
         )
 
+    # Save to database cache
     try:
         new_cache = models.OSMCache(
             cache_key=cache_key,
@@ -114,7 +143,17 @@ async def fetch_osm_data(lat: float, lon: float, radius_km: float, db: Session):
 
 async def get_route_candidates(radius_km: float, lat: float, lon: float, db: Session):
     """
-    Get location candidates for route planning
+    Retrieves, categorizes, prices, and shuffles location candidates for routes.
+
+    Args:
+        radius_km (float): Search radius in kilometers.
+        lat (float): Latitude.
+        lon (float): Longitude.
+        db (Session): Database session.
+
+    Returns:
+        dict: Mapped categories {"parks": [...], "museums": [...], "cafes": [...]},
+              where each item contains osm_id, name, lat, lon, price, and category.
     """
     try:
         osm_data = await fetch_osm_data(lat, lon, radius_km, db)
@@ -137,10 +176,24 @@ async def get_route_candidates(radius_km: float, lat: float, lon: float, db: Ses
             "cafes": []
         }
 
+# Generate custom override price lookup table map: {osm_id: entry_price}
     prices_db = {p.osm_id: p.entry_price for p in db.query(models.LocationPrice).all()}
     default_prices = {"park": 0.0, "museum": 100.0, "cafe": 250.0}
 
     def get_price(osm_node, category):
+        """
+        Derives the admission or base check value for an individual location node.
+
+        Checks the custom price override dictionary table first. Falls back onto 
+        hardcoded category default metrics if zero distinct rows match the target node ID.
+
+        Args:
+            osm_node (dict): Raw object coordinate descriptor array parsed from Overpass.
+            category (str): Target group classification key ("park" | "museum" | "cafe").
+
+        Returns:
+            float: Cost evaluation assigned to the location mapped in UAH currency scales.
+        """
         osm_id = f"{osm_node.get('type', 'node')}/{osm_node['id']}"
         return prices_db.get(osm_id, default_prices.get(category, 0.0))
 
@@ -153,12 +206,13 @@ async def get_route_candidates(radius_km: float, lat: float, lon: float, db: Ses
             tags = el.get("tags", {})
             name = tags.get("name", tags.get("official_name", "Без назви"))
 
+# Nodes hold coordinates directly; Way/Relation lines wrap them within a center object
             obj_lat = el.get("lat") or el.get("center", {}).get("lat")
             obj_lon = el.get("lon") or el.get("center", {}).get("lon")
             osm_id = f"{el.get('type', 'node')}/{el.get('id')}"
 
             if not obj_lat or not obj_lon:
-                continue
+                continue # Discard and skip any entries missing geometric reference markers
 
             item = {
                 "osm_id": osm_id,
@@ -185,6 +239,7 @@ async def get_route_candidates(radius_km: float, lat: float, lon: float, db: Ses
             logger.warning(f"Error processing element {el.get('id')}: {e}")
             continue
 
+# Randomize arrays locally to provide dynamic variety on every swipe pool reload request
     random.shuffle(parks)
     random.shuffle(museums)
     random.shuffle(cafes)

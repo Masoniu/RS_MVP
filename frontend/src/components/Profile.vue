@@ -1,51 +1,195 @@
 <script setup>
+/**
+ * @file Profile.vue
+ * @description User Profile component. Manages personal identification information modifications,
+ * security credential updates, session metrics aggregation, archive history tracking, 
+ * and external Google OAuth identity linking handshakes.
+ */
+
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { roomsApi } from '../api/rooms';
 
+/**
+ * Core application router engine driver used for view transitions.
+ * @constant {Object} router
+ */
 const router = useRouter();
+
+/**
+ * Central identity profile authentication store context.
+ * @constant {Object} authStore
+ */
 const authStore = useAuthStore();
 
+/**
+ * The unique Google API Credentials Client ID fetched from environment variables.
+ * @constant {string|undefined} GOOGLE_CLIENT_ID
+ */
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
+/**
+ * Reactive mirror pulling the active user record model straight from the core Pinia store.
+ * @type {import('vue').ComputedRef<Object|null>}
+ */
 const user = computed(() => authStore.user);
+
+/**
+ * Extractable textual user descriptor string. 
+ * Falls back to name, email prefix, or a localized Ukrainian fallback phrase ("Мандрівник").
+ * @type {import('vue').ComputedRef<string>}
+ */
 const userName = computed(() => user.value?.name || user.value?.email?.split('@')[0] || 'Мандрівник');
+
+/**
+ * User email address string proxy, defaulting to an empty spacer if unassigned.
+ * @type {import('vue').ComputedRef<string>}
+ */
 const userEmail = computed(() => user.value?.email || '—');
 
+/**
+ * Generates up to a two-letter textual placeholder initials badge from the user's name fields.
+ * Returns a "?" fallback string if the name data is completely empty.
+ * @type {import('vue').ComputedRef<string>}
+ */
 const initials = computed(() => {
   const name = user.value?.name || '';
   if (!name) return '?';
   return name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 });
 
+/**
+ * Collection index capturing all operational room entities linked to the active profile account.
+ * @type {import('vue').Ref<Array<Object>>}
+ */
 const myRooms = ref([]);
+
+/**
+ * Structural loading tracker displaying shell skeletons while statistics load asynchronously.
+ * @type {import('vue').Ref<boolean>}
+ */
 const statsLoading = ref(true);
 
+/**
+ * Total combined historical rooms assigned to the current active user record.
+ * @type {import('vue').ComputedRef<number>}
+ */
 const totalRooms = computed(() => myRooms.value.length);
+
+/**
+ * Total count of rooms currently in an active operational state status.
+ * @type {import('vue').ComputedRef<number>}
+ */
 const activeRooms = computed(() => myRooms.value.filter((r) => r.status === 'active').length);
+
+/**
+ * Total count of rooms that have been finalized and marked with a finished status flag.
+ * @type {import('vue').ComputedRef<number>}
+ */
 const finishedRooms = computed(() => myRooms.value.filter((r) => r.status === 'finished').length);
 
+/**
+ * Computes a filtered subset containing exclusively historical room records with a finished status.
+ * @type {import('vue').ComputedRef<Array<Object>>}
+ */
 const finishedRoomList = computed(() => myRooms.value.filter((r) => r.status === 'finished'));
+
+/**
+ * UI visual toggle flag managing the visibility of the past finished rooms list panel.
+ * @type {import('vue').Ref<boolean>}
+ */
 const showHistory = ref(false);
+
+/**
+ * UI toggle flag rendering the layout confirmation modal overlay when triggering standard account logout.
+ * @type {import('vue').Ref<boolean>}
+ */
 const showLogoutModal = ref(false);
 
+/**
+ * UI toggle flag displaying or hiding the profile editor dialog modal window wrapper.
+ * @type {import('vue').Ref<boolean>}
+ */
 const showEditModal = ref(false);
+
+/**
+ * Tracks the current sub-panel tab selected within the edit modal overlay ('info' or 'password').
+ * @type {import('vue').Ref<string>}
+ */
 const editTab = ref('info');
 
+/**
+ * Temporary form text string tracking changes to the user's full name inside the info editor panel.
+ * @type {import('vue').Ref<string>}
+ */
 const editName = ref('');
+
+/**
+ * Temporary form text string tracking changes to the user's email address inside the info editor panel.
+ * @type {import('vue').Ref<string>}
+ */
 const editEmail = ref('');
+
+/**
+ * General info form submission loader locking interactive inputs during update queries.
+ * @type {import('vue').Ref<boolean>}
+ */
 const editLoading = ref(false);
+
+/**
+ * Container holding validation error description texts caught during profile detail mutations.
+ * @type {import('vue').Ref<string>}
+ */
 const editError = ref('');
+
+/**
+ * Container holding flash confirmation success messages post successful information payload synchronization.
+ * @type {import('vue').Ref<string>}
+ */
 const editSuccess = ref('');
 
+/**
+ * Form field mapping verification variable checking the user's current security password.
+ * @type {import('vue').Ref<string>}
+ */
 const currentPassword = ref('');
+
+/**
+ * Form field mapping placeholder holding the new replacement password string.
+ * @type {import('vue').Ref<string>}
+ */
 const newPassword = ref('');
+
+/**
+ * Form field mapping checking matching characters to confirm the newly specified password parameter.
+ * @type {import('vue').Ref<string>}
+ */
 const confirmPassword = ref('');
+
+/**
+ * Password form submission loader displaying text spinner wheels during mutation requests.
+ * @type {import('vue').Ref<boolean>}
+ */
 const pwdLoading = ref(false);
+
+/**
+ * Feedback string mapping system security processing errors thrown by change password routines.
+ * @type {import('vue').Ref<string>}
+ */
 const pwdError = ref('');
+
+/**
+ * Feedback confirmation string flashing notices showing a successful password transition update.
+ * @type {import('vue').Ref<string>}
+ */
 const pwdSuccess = ref('');
 
+/**
+ * Pre-populates the input text fields with active user parameters and opens up the profile edit modal overlay.
+ * @function openEditModal
+ * @returns {void}
+ */
 function openEditModal() {
   editName.value = user.value?.name || '';
   editEmail.value = user.value?.email || '';
@@ -60,13 +204,26 @@ function openEditModal() {
   showEditModal.value = true;
 }
 
+/**
+ * Closes out active visibility flags shutting down the profile modal editor box component.
+ * @function closeEditModal
+ * @returns {void}
+ */
 function closeEditModal() {
   showEditModal.value = false;
 }
 
+/**
+ * Compares form field adjustments and sends profile mutation update payloads to the core API store.
+ * * @async
+ * @function saveProfile
+ * @returns {Promise<void>} Resolves when the profile parameters synchronize or exceptions process.
+ */
 async function saveProfile() {
   editError.value = '';
   editSuccess.value = '';
+  
+  /** @type {Object} payload - Dynamically calculated map filtering only changed properties. */
   const payload = {};
   if (editName.value.trim() && editName.value.trim() !== user.value?.name) {
     payload.name = editName.value.trim();
@@ -74,10 +231,13 @@ async function saveProfile() {
   if (editEmail.value.trim() && editEmail.value.trim() !== user.value?.email) {
     payload.email = editEmail.value.trim();
   }
+  
+  // Exit early if the form fields match the existing user details perfectly
   if (!Object.keys(payload).length) {
     editSuccess.value = 'Змін немає';
     return;
   }
+  
   editLoading.value = true;
   try {
     await authStore.updateProfile(payload);
@@ -90,9 +250,16 @@ async function saveProfile() {
   }
 }
 
+/**
+ * Performs validation parsing rules and coordinates password update actions against core secure APIs.
+ * * @async
+ * @function savePassword
+ * @returns {Promise<void>} Resolves when the security database entry transforms.
+ */
 async function savePassword() {
   pwdError.value = '';
   pwdSuccess.value = '';
+  
   if (!currentPassword.value) {
     pwdError.value = 'Введіть поточний пароль';
     return;
@@ -101,6 +268,7 @@ async function savePassword() {
     pwdError.value = 'Паролі не співпадають';
     return;
   }
+  
   pwdLoading.value = true;
   try {
     await authStore.changePassword(currentPassword.value, newPassword.value);
@@ -116,9 +284,26 @@ async function savePassword() {
   }
 }
 
+/**
+ * Check verifying if the active user profile profile has been linked to a federated Google credential layers.
+ * @type {import('vue').ComputedRef<boolean>}
+ */
 const isGoogleLinked = computed(() => user.value?.googleLinked);
+
+/**
+ * Social account handshake loading indicator toggled while binding tokens.
+ * @type {import('vue').Ref<boolean>}
+ */
 const linkLoading = ref(false);
 
+/**
+ * Intercepts authorization signatures emitted by Google popup widgets and appends them onto standard account profiles.
+ * * @async
+ * @function handleLinkGoogle
+ * @param {Object} response - Credential payload dictionary emitted via native web elements.
+ * @param {string} response.credential - Raw authorization string token verification format signature.
+ * @returns {Promise<void>} Resolves once social accounts mesh.
+ */
 const handleLinkGoogle = async (response) => {
   linkLoading.value = true;
   try {
@@ -130,15 +315,21 @@ const handleLinkGoogle = async (response) => {
   }
 };
 
+/**
+ * Core initialization mounting hook. Queries the application backend database to retrieve user history metrics
+ * and configures the identity rendering framework needed to construct Google interaction buttons.
+ */
 onMounted(async () => {
   try {
     const { data } = await roomsApi.getMyRooms();
     myRooms.value = data;
   } catch {
+    // Graceful recovery placeholder block protecting initial dashboard load workflows
   } finally {
     statsLoading.value = false;
   }
 
+  // Configure and display standard Google connection options if the profile is unlinked
   if (window.google && GOOGLE_CLIENT_ID && !isGoogleLinked.value) {
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
@@ -152,11 +343,23 @@ onMounted(async () => {
   }
 });
 
+/**
+ * Formats standard date-time string objects into readable calendar values matching localized standards.
+ * * @style Standard structure configuration example: "15 Jun"
+ * @function formatDateShort
+ * @param {string} dateStr - Raw date-time serialization format returned by backend endpoints.
+ * @returns {string} Formatted localized short textual calendar representation string.
+ */
 function formatDateShort(dateStr) {
   if (!dateStr) return '';
   return new Date(dateStr).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
 }
 
+/**
+ * Invalidates system access tokens, flushes active storage caches, and redirects view scopes to root welcome panels.
+ * @function confirmLogout
+ * @returns {void}
+ */
 function confirmLogout() {
   authStore.logout();
   localStorage.removeItem('active_room_id');
