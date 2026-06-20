@@ -490,7 +490,7 @@ function confirmLogout() {
                     <i class="fa-solid fa-flag-checkered"></i>
                   </div>
                   <div class="flex-grow-1 min-w-0">
-                    <div class="room-name fw-bold text-truncate">{{ room.name }}</div>
+                    <div class="room-name fw-bold">{{ room.name }}</div>
                     <div class="room-meta">{{ formatDateShort(room.created_at) }}</div>
                   </div>
                   <span class="room-badge ms-2 badge-finished">Завершена</span>
@@ -822,7 +822,16 @@ function confirmLogout() {
 .icon-active   { background-color: rgba(41, 44, 165, 0.12); color: #292CA8; }
 .icon-finished { background-color: rgba(98, 80, 80, 0.1); color: #625050; }
 
-.room-name { font-size: 15px; color: #3b1c1c; }
+.room-name {
+  font-size: 15px; 
+  color: #3b1c1c; 
+  white-space: normal;
+  word-wrap: break-word;
+  line-height: 1.3;
+}
+
+.min-w-0 { min-width: 0; }
+
 .room-meta { font-size: 12px; color: #625050; opacity: 0.7; margin-top: 1px; }
 
 .room-badge {
