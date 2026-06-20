@@ -81,7 +81,14 @@ const handleRegister = async () => {
     return;
   }
   
-  //Consistency Validation: Ensure confirmation characters perfectly match the primary password
+  // Complexity Validation: Ensure password meets security standards (Latin letters, numbers, min 8 chars, no Cyrillic)
+  const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)[^а-яА-ЯіІїЇєЄґҐ]{8,}$/;
+  if (!passwordRegex.test(password.value)) {
+    errorMessage.value = 'Пароль має містити латинські літери, цифри, бути не менше 8 символів та не містити кирилиці.';
+    return;
+  }
+
+  // Consistency Validation: Ensure confirmation characters perfectly match the primary password
   if (password.value !== confirmPassword.value) {
     errorMessage.value = 'Паролі не збігаються';
     return;
@@ -89,13 +96,13 @@ const handleRegister = async () => {
 
   isLoading.value = true;
   try {
-    //Dispatch account generation sequence to central Pinia auth store
+    // Dispatch account generation sequence to central Pinia auth store
     await authStore.register(email.value, password.value, name.value);
-    
-    //On successful creation, immediately trigger automated sign-in loop
+
+    // On successful creation, immediately trigger automated sign-in loop
     await authStore.login(email.value, password.value);
-    
-    //Route validated session focus directly into primary workspace dashboard
+
+    // Route validated session focus directly into primary workspace dashboard
     router.push('/lobby');
   } catch (error) {
     console.error(error);
@@ -109,12 +116,12 @@ const handleRegister = async () => {
 <template>
   <div class="login-page d-flex align-items-center justify-content-center">
     <div class="container-fluid p-0 h-100">
-      
+
       <div class="row g-0 h-100 min-vh-100">
-        
+
         <div class="col-md-6 align-items-center justify-content-center route-visualization p-5">
           <div class="animation-container text-center">
-            
+
             <svg viewBox="0 0 500 400" class="map-animation mb-4" xmlns="http://www.w3.org/2000/svg">
               <circle class="point p1" cx="80" cy="320" r="10" fill="#625050" />
               <circle class="point p2" cx="250" cy="120" r="10" fill="#625050" />
@@ -128,11 +135,11 @@ const handleRegister = async () => {
         </div>
 
         <div class="col-md-6 d-flex align-items-center justify-content-center p-4 p-lg-5 forms-section">
-          
+
           <div class="glass-card mx-auto">
             <div class="mb-4 text-center">
                 <img src="../assets/logo.svg" alt="RouteSplitter Logo" class="logo-image mx-auto d-block">
-  
+
                 <div class="mobile-only-text mt-2 d-md-none">
                     <h1 class="fw-bold mb-1 main-title">RouteSplitter</h1>
                     <p class="subtitle mx-auto mb-0">Твій помічник у плануванні прогулянок!</p>
@@ -153,19 +160,19 @@ const handleRegister = async () => {
 
               <div class="mb-3 text-start">
                 <label class="form-label ms-1 custom-label">Пароль</label>
-                <input v-model="password" type="password" :class="{'error-glow': isSubmitted && !password}" class="form-control pretty-input" placeholder="••••••••">
+                <input v-model="password" type="password" :class="{'error-glow': isSubmitted && (!password || (isSubmitted && errorMessage.includes('Пароль має містити')))}" class="form-control pretty-input" placeholder="••••••••">
               </div>
 
               <div class="mb-3 text-start">
                 <label class="form-label ms-1 custom-label">Підтвердження пароля</label>
-                <input v-model="confirmPassword" type="password" :class="{'error-glow': isSubmitted && !confirmPassword}" class="form-control pretty-input" placeholder="••••••••">
+                <input v-model="confirmPassword" type="password" :class="{'error-glow': isSubmitted && (!confirmPassword || (isSubmitted && errorMessage === 'Паролі не збігаються'))}" class="form-control pretty-input" placeholder="••••••••">
               </div>
 
               <div style="margin-bottom: 15px;">
                 <div v-if="errorMessage" class="alert alert-danger py-2 text-center m-0" style="border-radius: 12px; font-size: 14px;">
                     {{ errorMessage }}
                 </div>
-            </div>
+              </div>
 
               <button @click="handleRegister" class="btn w-100 brown-btn mb-4 mt-2" :disabled="isLoading">
                 <span v-if="isLoading" class="spinner-border spinner-border-sm me-2"></span>
