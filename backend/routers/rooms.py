@@ -100,13 +100,19 @@ def join_room(
 
     Raises:
         HTTPException(404): If no active room matches the provided invite token.
-        HTTPException(400): If the target user profile is already mapped as a participant.
+        HTTPException(400): If the target user profile is already mapped as a participant or if the room is finished.
     """
     room = db.query(models.Room).filter(models.Room.invite_code == join_data.invite_code).first()
     if not room:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Кімнату з таким кодом не знайдено"
+        )
+
+    if room.status == "finished":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ця прогулянка вже завершена. До неї неможливо приєднатися."
         )
 
     #Database lookup checks existing table references to block duplicate memberships
