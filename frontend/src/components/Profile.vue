@@ -222,7 +222,12 @@ function closeEditModal() {
 async function saveProfile() {
   editError.value = '';
   editSuccess.value = '';
-  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (editEmail.value.trim() && !emailRegex.test(editEmail.value.trim())) {
+    editError.value = 'Будь ласка, введіть коректний email (наприклад, user@mail.com)';
+    return;
+  }
+
   /** @type {Object} payload - Dynamically calculated map filtering only changed properties. */
   const payload = {};
   if (editName.value.trim() && editName.value.trim() !== user.value?.name) {
@@ -231,20 +236,24 @@ async function saveProfile() {
   if (editEmail.value.trim() && editEmail.value.trim() !== user.value?.email) {
     payload.email = editEmail.value.trim();
   }
-  
+
   // Exit early if the form fields match the existing user details perfectly
   if (!Object.keys(payload).length) {
     editSuccess.value = 'Змін немає';
     return;
   }
-  
+
   editLoading.value = true;
   try {
     await authStore.updateProfile(payload);
     editSuccess.value = 'Збережено!';
     setTimeout(() => { editSuccess.value = ''; }, 2000);
   } catch (e) {
-    editError.value = e.response?.data?.detail || 'Помилка збереження';
+    if (e.response?.status === 422) {
+        editError.value = 'Введено некоректні дані формату';
+    } else {
+        editError.value = e.response?.data?.detail || 'Помилка збереження';
+    }
   } finally {
     editLoading.value = false;
   }
